@@ -1,10 +1,7 @@
-// Fix for src/app/incidents/edit/[id]/page.js
-
 'use client'
 import { useSession } from 'next-auth/react'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 
 // Simplified incident types as per document
 const INCIDENT_TYPES = [
@@ -42,11 +39,46 @@ export default function EditIncidentPage({ params }) {
     attachments: []
   })
 
-  // Use useCallback to memoize the function
-  const loadIncident = useCallback(async () => {
+  // Redirect if not logged in
+  useEffect(() => {
+    if (status === 'loading') return
+    if (!session) router.push('/login')
+    else {
+      loadClients()
+      loadRecipients()
+      loadIncident()
+    }
+  }, [session, status, router, params.id])
+
+  const loadClients = async () => {
     try {
-      const resolvedParams = await params
-      const response = await fetch(`/api/incidents/${resolvedParams.id}`)
+      const response = await fetch('/api/clients')
+      const data = await response.json()
+      
+      if (response.ok) {
+        setClients(data.clients)
+      }
+    } catch (error) {
+      console.error('Error loading clients:', error)
+    }
+  }
+
+  const loadRecipients = async () => {
+    try {
+      const response = await fetch('/api/recipients')
+      const data = await response.json()
+      
+      if (response.ok) {
+        setRecipients(data.recipients)
+      }
+    } catch (error) {
+      console.error('Error loading recipients:', error)
+    }
+  }
+
+  const loadIncident = async () => {
+    try {
+      const response = await fetch(`/api/incidents/${params.id}`)
       const data = await response.json()
       
       if (response.ok) {
@@ -56,7 +88,7 @@ export default function EditIncidentPage({ params }) {
         // Check if incident can be edited
         if (incident.status !== 'submitted') {
           alert('This incident cannot be edited because it has already been reviewed.')
-          router.push(`/incidents/${resolvedParams.id}`)
+          router.push(`/incidents/${params.id}`)
           return
         }
         
@@ -91,43 +123,6 @@ export default function EditIncidentPage({ params }) {
       router.push('/incidents')
     }
     setPageLoading(false)
-  }, [params, session, router])
-
-  // Redirect if not logged in
-  useEffect(() => {
-    if (status === 'loading') return
-    if (!session) router.push('/login')
-    else {
-      loadClients()
-      loadRecipients()
-      loadIncident()
-    }
-  }, [session, status, router, loadIncident])
-
-  const loadClients = async () => {
-    try {
-      const response = await fetch('/api/clients')
-      const data = await response.json()
-      
-      if (response.ok) {
-        setClients(data.clients)
-      }
-    } catch (error) {
-      console.error('Error loading clients:', error)
-    }
-  }
-
-  const loadRecipients = async () => {
-    try {
-      const response = await fetch('/api/recipients')
-      const data = await response.json()
-      
-      if (response.ok) {
-        setRecipients(data.recipients)
-      }
-    } catch (error) {
-      console.error('Error loading recipients:', error)
-    }
   }
 
   const handleSubmit = async (e) => {
@@ -135,7 +130,6 @@ export default function EditIncidentPage({ params }) {
     setLoading(true)
 
     try {
-      const resolvedParams = await params
       const isCommunication = formData.incidentType === 'Communication/Message'
       
       const incidentData = {
@@ -154,7 +148,7 @@ export default function EditIncidentPage({ params }) {
 
       console.log('Updating incident data:', incidentData)
 
-      const response = await fetch(`/api/incidents/${resolvedParams.id}`, {
+      const response = await fetch(`/api/incidents/${params.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -168,7 +162,7 @@ export default function EditIncidentPage({ params }) {
       if (response.ok) {
         // Handle new file uploads if any
         if (formData.newAttachments && formData.newAttachments.length > 0) {
-          await uploadNewFiles(resolvedParams.id)
+          await uploadNewFiles()
         }
         
         const isMessage = formData.incidentType === 'Communication/Message'
@@ -177,7 +171,7 @@ export default function EditIncidentPage({ params }) {
         } else {
           alert(`Incident updated successfully!\nIncident ID: ${originalIncident.incidentId}`)
         }
-        router.push(`/incidents/${resolvedParams.id}`)
+        router.push(`/incidents/${params.id}`)
       } else {
         alert(`Error: ${data.error || 'Failed to update'}`)
         console.error('Server error:', data)
@@ -189,10 +183,10 @@ export default function EditIncidentPage({ params }) {
     setLoading(false)
   }
 
-  const uploadNewFiles = async (incidentId) => {
+  const uploadNewFiles = async () => {
     try {
       const formDataToSend = new FormData()
-      formDataToSend.append('incidentId', incidentId)
+      formDataToSend.append('incidentId', params.id)
       
       for (let i = 0; i < formData.newAttachments.length; i++) {
         formDataToSend.append('files', formData.newAttachments[i])
@@ -230,8 +224,7 @@ export default function EditIncidentPage({ params }) {
   const removeAttachment = async (attachmentIndex) => {
     if (confirm('Are you sure you want to remove this attachment?')) {
       try {
-        const resolvedParams = await params
-        const response = await fetch(`/api/incidents/${resolvedParams.id}/attachments`, {
+        const response = await fetch(`/api/incidents/${params.id}/attachments`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json'
@@ -283,7 +276,7 @@ export default function EditIncidentPage({ params }) {
                 Editing {isCommunication ? 'Message' : 'Incident Report'}
               </h3>
               <p className="mt-1 text-sm text-yellow-700">
-                You can only edit {isCommunication ? 'messages' : 'incidents'} with &quot;submitted&quot; status. Once reviewed, {isCommunication ? 'messages' : 'incidents'} cannot be modified.
+                You can only edit {isCommunication ? 'messages' : 'incidents'} with "submitted" status. Once reviewed, {isCommunication ? 'messages' : 'incidents'} cannot be modified.
               </p>
             </div>
           </div>
@@ -517,12 +510,10 @@ export default function EditIncidentPage({ params }) {
                   <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded border">
                     <div className="flex items-center">
                       {file.fileType?.startsWith('image/') && (
-                        <Image
+                        <img
                           src={file.filePath}
                           alt={file.originalName}
-                          width={40}
-                          height={40}
-                          className="object-cover rounded mr-3"
+                          className="w-10 h-10 object-cover rounded mr-3"
                         />
                       )}
                       <div>
@@ -591,10 +582,7 @@ export default function EditIncidentPage({ params }) {
             
             <button
               type="button"
-              onClick={async () => {
-                const resolvedParams = await params
-                router.push(`/incidents/${resolvedParams.id}`)
-              }}
+              onClick={() => router.push(`/incidents/${params.id}`)}
               className="bg-gray-600 text-white px-6 py-3 rounded-md hover:bg-gray-700 font-medium"
             >
               Cancel
