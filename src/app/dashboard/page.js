@@ -177,7 +177,7 @@ export default function Dashboard() {
 
         {/* Quick Actions - Only show if on duty */}
         {activeShift && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <div className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow">
               <h2 className="text-lg font-medium text-gray-900 mb-4">Report Incident</h2>
               <p className="text-gray-600 mb-4">Create a new incident report</p>
@@ -197,14 +197,6 @@ export default function Dashboard() {
                 className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
               >
                 📋 View Reports
-              </button>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Messages</h2>
-              <p className="text-gray-600 mb-4">Communicate with headquarters</p>
-              <button className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors">
-                💬 Send Message
               </button>
             </div>
           </div>
