@@ -2,6 +2,22 @@
 import { useSession } from 'next-auth/react'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { 
+  ArrowLeft, 
+  Camera, 
+  Upload, 
+  Check, 
+  X, 
+  RotateCcw,
+  Trash2,
+  Play,
+  Square,
+  MapPin,
+  FileText,
+  AlertCircle,
+  CheckCircle,
+  Clock
+} from 'lucide-react'
 
 export default function CheckInPage() {
   const { data: session, status } = useSession()
@@ -82,7 +98,7 @@ export default function CheckInPage() {
     }
   }
 
-   const handleFileUpload = (e) => {
+  const handleFileUpload = (e) => {
     const file = e.target.files[0]
     if (file) {
       // Validate file type
@@ -126,74 +142,73 @@ export default function CheckInPage() {
     startCamera()
   }
 
- const handleStartShift = async () => {
-  if (!capturedPhoto && !uploadedPhoto) {
-    alert('Photo verification is required to start your shift!')
-    return
-  }
+  const handleStartShift = async () => {
+    if (!capturedPhoto && !uploadedPhoto) {
+      alert('Photo verification is required to start your shift!')
+      return
+    }
 
-  setLoading(true)
-  try {
-    // First, start the shift
-    const response = await fetch('/api/checkin/start', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(formData)
-    })
-
-    if (response.ok) {
-      console.log('Shift started, now uploading photo...')
-      
-      // Upload photo
-      const formDataWithPhoto = new FormData()
-      
-      if (capturedPhoto) {
-        formDataWithPhoto.append('photo', capturedPhoto, 'checkin-photo.jpg')
-      } else if (uploadedPhoto) {
-        formDataWithPhoto.append('photo', uploadedPhoto, uploadedPhoto.name)
-      }
-      
-      formDataWithPhoto.append('type', 'checkin')
-
-      const photoResponse = await fetch('/api/checkin/photo', {
+    setLoading(true)
+    try {
+      // First, start the shift
+      const response = await fetch('/api/checkin/start', {
         method: 'POST',
-        body: formDataWithPhoto
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
       })
 
-      const photoData = await photoResponse.json()
-      console.log('Photo upload response:', photoData)
+      if (response.ok) {
+        console.log('Shift started, now uploading photo...')
+        
+        // Upload photo
+        const formDataWithPhoto = new FormData()
+        
+        if (capturedPhoto) {
+          formDataWithPhoto.append('photo', capturedPhoto, 'checkin-photo.jpg')
+        } else if (uploadedPhoto) {
+          formDataWithPhoto.append('photo', uploadedPhoto, uploadedPhoto.name)
+        }
+        
+        formDataWithPhoto.append('type', 'checkin')
 
-      if (photoResponse.ok) {
-        // Wait a moment to ensure database is updated
-        await new Promise(resolve => setTimeout(resolve, 500))
-        
-        // Force refresh the shift status
-        await loadShiftStatus()
-        
-        alert('Shift started successfully with photo verification!')
-        
-        // Use replace instead of push to avoid back button issues
-        router.replace('/dashboard')
+        const photoResponse = await fetch('/api/checkin/photo', {
+          method: 'POST',
+          body: formDataWithPhoto
+        })
+
+        const photoData = await photoResponse.json()
+        console.log('Photo upload response:', photoData)
+
+        if (photoResponse.ok) {
+          // Wait a moment to ensure database is updated
+          await new Promise(resolve => setTimeout(resolve, 500))
+          
+          // Force refresh the shift status
+          await loadShiftStatus()
+          
+          alert('Shift started successfully with photo verification!')
+          
+          // Use replace instead of push to avoid back button issues
+          router.replace('/dashboard')
+        } else {
+          console.error('Photo upload failed:', photoData.error)
+          alert(`Shift started but photo upload failed: ${photoData.error}`)
+          router.replace('/dashboard')
+        }
       } else {
-        console.error('Photo upload failed:', photoData.error)
-        alert(`Shift started but photo upload failed: ${photoData.error}`)
-        router.replace('/dashboard')
+        const data = await response.json()
+        alert(data.error || 'Failed to start shift')
       }
-    } else {
-      const data = await response.json()
-      alert(data.error || 'Failed to start shift')
+    } catch (error) {
+      console.error('Error starting shift:', error)
+      alert('Error starting shift: ' + error.message)
     }
-  } catch (error) {
-    console.error('Error starting shift:', error)
-    alert('Error starting shift: ' + error.message)
+    setLoading(false)
   }
-  setLoading(false)
-}
 
-   const handleEndShift = async () => {
-    
+  const handleEndShift = async () => {
     setLoading(true)
     try {
       const response = await fetch('/api/checkin/end', {
@@ -218,14 +233,12 @@ export default function CheckInPage() {
     setLoading(false)
   }
 
-
-
   if (status === 'loading') {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+        <div className="text-center bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/20">
+          <div className="animate-spin rounded-full h-12 w-12 border-3 border-blue-600 border-t-transparent mx-auto"></div>
+          <p className="mt-4 text-gray-600 font-medium">Loading...</p>
         </div>
       </div>
     )
@@ -234,58 +247,69 @@ export default function CheckInPage() {
   if (!session) return null
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
+        {/* Header with Back Button */}
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">
+            {activeShift ? 'End Shift' : 'Start Shift'}
+          </h1>
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm text-gray-600 rounded-xl hover:bg-white hover:text-gray-900 transition-all duration-200 border border-white/20 shadow-sm"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">Dashboard</span>
+          </button>
+        </div>
+
         {!activeShift ? (
           // START SHIFT
-          <div className="bg-white rounded-lg shadow p-8">
+          <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8">
             <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Start Your Shift</h2>
+              <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Play className="w-8 h-8 text-white" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Start Your Shift</h2>
               <p className="text-gray-600">Photo verification is required to begin your shift</p>
             </div>
 
             {/* Photo Verification Section */}
             <div className="mb-8">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">📸 Photo Verification *</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <Camera className="w-5 h-5 text-blue-600" />
+                Photo Verification
+                <span className="text-red-500">*</span>
+              </h3>
               
               {!showCamera && !capturedPhoto && !uploadedPhoto && (
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8">
+                <div className="border-2 border-dashed border-gray-300 rounded-2xl p-8 bg-gray-50/50">
                   <div className="text-center mb-6">
-                    <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 48 48">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" />
-                    </svg>
-                    <p className="text-gray-600 mb-6">Choose how you want to provide your photo:</p>
+                    <Camera className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600 mb-6 font-medium">Choose how you want to provide your photo:</p>
                   </div>
                   
                   {/* Photo Options */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Take Photo Option */}
-                    <div className="text-center">
-                      <button
-                        onClick={startCamera}
-                        className="w-full bg-blue-600 text-white px-6 py-4 rounded-lg text-lg font-medium hover:bg-blue-700 transition-colors"
-                      >
-                        <svg className="w-6 h-6 mx-auto mb-2" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
-                        </svg>
-                        📱 Take Photo
-                      </button>
-                      <p className="text-sm text-gray-500 mt-2">Use your camera</p>
-                    </div>
+                    <button
+                      onClick={startCamera}
+                      className="flex flex-col items-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200 hover:from-blue-100 hover:to-blue-200 transition-all duration-200 group"
+                    >
+                      <Camera className="w-8 h-8 text-blue-600 mb-3 group-hover:scale-110 transition-transform" />
+                      <span className="font-bold text-blue-900">Take Photo</span>
+                      <span className="text-sm text-blue-700 mt-1">Use your camera</span>
+                    </button>
                     
                     {/* Upload Photo Option */}
-                    <div className="text-center">
-                      <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className="w-full bg-green-600 text-white px-6 py-4 rounded-lg text-lg font-medium hover:bg-green-700 transition-colors"
-                      >
-                        <svg className="w-6 h-6 mx-auto mb-2" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                        </svg>
-                        📁 Upload Photo
-                      </button>
-                      <p className="text-sm text-gray-500 mt-2">Choose from gallery</p>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex flex-col items-center p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200 hover:from-green-100 hover:to-green-200 transition-all duration-200 group"
+                    >
+                      <Upload className="w-8 h-8 text-green-600 mb-3 group-hover:scale-110 transition-transform" />
+                      <span className="font-bold text-green-900">Upload Photo</span>
+                      <span className="text-sm text-green-700 mt-1">Choose from gallery</span>
                       <input
                         ref={fileInputRef}
                         type="file"
@@ -293,7 +317,7 @@ export default function CheckInPage() {
                         onChange={handleFileUpload}
                         className="hidden"
                       />
-                    </div>
+                    </button>
                   </div>
                   
                   <div className="mt-4 text-center">
@@ -306,24 +330,26 @@ export default function CheckInPage() {
 
               {/* Camera View */}
               {showCamera && (
-                <div className="text-center">
+                <div className="text-center bg-gray-900 rounded-2xl p-4">
                   <div className="relative inline-block">
                     <video
                       ref={videoRef}
                       autoPlay
                       playsInline
-                      className="w-full max-w-md mx-auto rounded-lg border shadow-lg"
+                      className="w-full max-w-md mx-auto rounded-xl border-4 border-white shadow-lg"
                     />
-                    <div className="absolute top-4 left-4 bg-red-600 text-white px-3 py-1 rounded-full text-sm font-medium">
-                      📹 Live
+                    <div className="absolute top-4 left-4 bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1">
+                      <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                      Live
                     </div>
                   </div>
-                  <div className="mt-6 space-x-4">
+                  <div className="mt-6 flex justify-center gap-4">
                     <button
                       onClick={capturePhoto}
-                      className="bg-green-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-green-700 transition-colors"
+                      className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-8 py-3 rounded-xl font-bold transition-all duration-200 flex items-center gap-2"
                     >
-                      📸 Capture Photo
+                      <Camera className="w-5 h-5" />
+                      Capture Photo
                     </button>
                     <button
                       onClick={() => {
@@ -333,8 +359,9 @@ export default function CheckInPage() {
                         }
                         setShowCamera(false)
                       }}
-                      className="bg-gray-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-700 transition-colors"
+                      className="bg-gray-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-gray-700 transition-colors flex items-center gap-2"
                     >
+                      <X className="w-5 h-5" />
                       Cancel
                     </button>
                   </div>
@@ -343,12 +370,12 @@ export default function CheckInPage() {
 
               {/* Photo Preview */}
               {(capturedPhoto || uploadedPhoto) && (
-                <div className="text-center">
+                <div className="text-center bg-green-50 rounded-2xl p-6 border border-green-200">
                   <div className="relative inline-block">
                     {capturedPhoto && (
                       <canvas 
                         ref={canvasRef} 
-                        className="w-full max-w-md mx-auto rounded-lg border shadow-lg" 
+                        className="w-full max-w-md mx-auto rounded-xl border-4 border-green-200 shadow-lg" 
                       />
                     )}
                     {uploadedPhoto && (
@@ -356,43 +383,48 @@ export default function CheckInPage() {
                         <img
                           src={URL.createObjectURL(uploadedPhoto)}
                           alt="Uploaded verification photo"
-                          className="w-full rounded-lg border shadow-lg"
+                          className="w-full rounded-xl border-4 border-green-200 shadow-lg"
                         />
                       </div>
                     )}
-                    <div className="absolute top-4 right-4 bg-green-600 text-white px-3 py-1 rounded-full text-sm font-bold">
-                      ✅ Ready
+                    <div className="absolute top-4 right-4 bg-green-600 text-white px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1">
+                      <CheckCircle className="w-4 h-4" />
+                      Ready
                     </div>
                   </div>
                   
-                  <div className="mt-6 space-x-4">
-                    <span className="text-green-600 font-bold text-lg">
-                      ✅ Photo Verification Complete
-                    </span>
+                  <div className="mt-6">
+                    <div className="inline-flex items-center gap-2 text-green-700 font-bold text-lg bg-green-100 px-4 py-2 rounded-xl">
+                      <CheckCircle className="w-5 h-5" />
+                      Photo Verification Complete
+                    </div>
                   </div>
                   
-                  <div className="mt-4 space-x-4">
+                  <div className="mt-4 flex justify-center gap-3">
                     {capturedPhoto && (
                       <button
                         onClick={retakePhoto}
-                        className="bg-yellow-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-yellow-700 transition-colors"
+                        className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl font-medium transition-colors flex items-center gap-2"
                       >
-                        🔄 Retake Photo
+                        <RotateCcw className="w-4 h-4" />
+                        Retake
                       </button>
                     )}
                     {uploadedPhoto && (
                       <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="bg-yellow-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-yellow-700 transition-colors"
+                        className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl font-medium transition-colors flex items-center gap-2"
                       >
-                        🔄 Choose Different Photo
+                        <RotateCcw className="w-4 h-4" />
+                        Choose Different
                       </button>
                     )}
                     <button
                       onClick={removePhoto}
-                      className="bg-red-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors"
+                      className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl font-medium transition-colors flex items-center gap-2"
                     >
-                      🗑️ Remove Photo
+                      <Trash2 className="w-4 h-4" />
+                      Remove
                     </button>
                   </div>
                 </div>
@@ -400,9 +432,10 @@ export default function CheckInPage() {
             </div>
 
             {/* Additional Information */}
-            <div className="space-y-4 mb-8">
+            <div className="space-y-6 mb-8">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-blue-600" />
                   Location (Optional)
                 </label>
                 <input
@@ -410,12 +443,13 @@ export default function CheckInPage() {
                   value={formData.location}
                   onChange={(e) => setFormData({...formData, location: e.target.value})}
                   placeholder="Building A, Main Entrance"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-blue-600" />
                   Notes (Optional)
                 </label>
                 <textarea
@@ -423,7 +457,7 @@ export default function CheckInPage() {
                   onChange={(e) => setFormData({...formData, notes: e.target.value})}
                   placeholder="Any special notes for this shift..."
                   rows="3"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
                 />
               </div>
             </div>
@@ -432,47 +466,83 @@ export default function CheckInPage() {
             <button
               onClick={handleStartShift}
               disabled={loading || (!capturedPhoto && !uploadedPhoto)}
-              className={`w-full py-4 px-6 rounded-lg text-xl font-bold transition-colors ${
+              className={`w-full py-4 px-6 rounded-xl text-xl font-bold transition-all duration-200 flex items-center justify-center gap-3 ${
                 (capturedPhoto || uploadedPhoto)
-                  ? 'bg-green-600 text-white hover:bg-green-700' 
+                  ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg transform hover:scale-105' 
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
             >
-              {loading ? 'Starting Shift...' : '🚀 START SHIFT'}
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent"></div>
+                  Starting Shift...
+                </>
+              ) : (
+                <>
+                  <Play className="w-6 h-6" />
+                  START SHIFT
+                </>
+              )}
             </button>
             
             {!capturedPhoto && !uploadedPhoto && (
-              <p className="text-center text-red-600 text-sm mt-2">
-                * Photo verification is required to start your shift
-              </p>
+              <div className="flex items-center justify-center gap-2 text-red-600 text-sm mt-3 bg-red-50 rounded-xl py-2 px-4">
+                <AlertCircle className="w-4 h-4" />
+                Photo verification is required to start your shift
+              </div>
             )}
           </div>
         ) : (
-          // END SHIFT / LUNCH BREAK (keep existing code)
+          // END SHIFT
           <div className="space-y-6">
             {/* Current Shift Info */}
-            <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-              <h2 className="text-xl font-bold text-green-800 mb-2">✅ Currently On Duty</h2>
-              <p className="text-green-700">Started: {new Date(activeShift.checkInTime).toLocaleString()}</p>
-              {activeShift.location && (
-                <p className="text-green-700">Location: {activeShift.location}</p>
-              )}
+            <div className="bg-gradient-to-br from-green-50 to-emerald-100 border border-green-200 rounded-2xl p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <CheckCircle className="w-8 h-8 text-green-600" />
+                <h2 className="text-xl font-bold text-green-800">Currently On Duty</h2>
+              </div>
+              <div className="space-y-2 text-green-700">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  <span>Started: {new Date(activeShift.checkInTime).toLocaleString()}</span>
+                </div>
+                {activeShift.location && (
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    <span>Location: {activeShift.location}</span>
+                  </div>
+                )}
+              </div>
             </div>
 
-
             {/* End Shift */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">🏁 End Shift</h3>
-              <p className="text-gray-600 mb-4">
-                Ready to end your shift? You can add notes about what happened during your shift.
-              </p>
-              <button
-                onClick={handleEndShift}
-                disabled={loading}
-                className="w-full bg-red-600 text-white py-4 px-6 rounded-lg text-xl font-bold hover:bg-red-700 disabled:bg-red-300"
-              >
-                {loading ? 'Ending Shift...' : '🏁 END SHIFT'}
-              </button>
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-8">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <Square className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">End Shift</h3>
+                <p className="text-gray-600 mb-8">
+                  Ready to end your shift? You can add notes about what happened during your shift.
+                </p>
+                <button
+                  onClick={handleEndShift}
+                  disabled={loading}
+                  className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 disabled:from-red-300 disabled:to-red-400 text-white py-4 px-6 rounded-xl text-xl font-bold transition-all duration-200 flex items-center justify-center gap-3"
+                >
+                  {loading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent"></div>
+                      Ending Shift...
+                    </>
+                  ) : (
+                    <>
+                      <Square className="w-6 h-6" />
+                      END SHIFT
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         )}
