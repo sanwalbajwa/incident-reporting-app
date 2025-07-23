@@ -8,6 +8,7 @@ export default function ViewIncidentPage({ params }) {
   const router = useRouter()
   const [incident, setIncident] = useState(null)
   const [client, setClient] = useState(null)
+  const [recipient, setRecipient] = useState(null) // Add recipient state
   const [loading, setLoading] = useState(true)
   const [selectedImage, setSelectedImage] = useState(null)
 
@@ -35,6 +36,10 @@ export default function ViewIncidentPage({ params }) {
           // Load client details
           if (data.incident.clientId) {
             loadClient(data.incident.clientId)
+          }
+          // Load recipient details
+          if (data.incident.recipientId) {
+            loadRecipient(data.incident.recipientId)
           }
         } else {
           alert('Incident not found: ' + data.error)
@@ -64,6 +69,53 @@ export default function ViewIncidentPage({ params }) {
     }
   }
 
+  const loadRecipient = async (recipientId) => {
+    try {
+      // Try to get recipient by ID first
+      const response = await fetch(`/api/recipients/${recipientId}`)
+      
+      if (response.ok) {
+        const data = await response.json()
+        setRecipient(data.recipient)
+      } else {
+        // Fallback: if recipientId is a role string, format it nicely
+        if (typeof recipientId === 'string') {
+          setRecipient({
+            name: formatRole(recipientId),
+            role: formatRole(recipientId),
+            email: null,
+            isRoleFallback: true
+          })
+        }
+      }
+    } catch (error) {
+      console.error('Error loading recipient:', error)
+      // Fallback for role-based recipients
+      if (typeof recipientId === 'string') {
+        setRecipient({
+          name: formatRole(recipientId),
+          role: formatRole(recipientId),
+          email: null,
+          isRoleFallback: true
+        })
+      }
+    }
+  }
+
+  // Helper function to format role names
+  const formatRole = (role) => {
+    switch (role) {
+      case 'security_supervisor':
+        return 'Security Supervisor'
+      case 'maintenance':
+        return 'Maintenance Team'
+      case 'management':
+        return 'Management'
+      default:
+        return role
+    }
+  }
+
   const formatDate = (date) => {
     return new Date(date).toLocaleString()
   }
@@ -80,6 +132,21 @@ export default function ViewIncidentPage({ params }) {
         return 'bg-gray-100 text-gray-800 border-gray-200'
     }
   }
+
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case 'critical':
+        return 'bg-red-100 text-red-800 border-red-200'
+      case 'urgent':
+        return 'bg-orange-100 text-orange-800 border-orange-200'
+      case 'normal':
+        return 'bg-blue-100 text-blue-800 border-blue-200'
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200'
+    }
+  }
+
+  const isMessage = incident?.messageType === 'communication' || incident?.incidentType === 'Communication/Message'
 
   if (status === 'loading' || loading) {
     return (
@@ -117,7 +184,7 @@ export default function ViewIncidentPage({ params }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <h1 className="text-xl font-semibold text-gray-900">
-              Incident Details - {incident.incidentId}
+              {isMessage ? '💬 Message Details' : '🚨 Incident Details'} - {incident.incidentId}
             </h1>
             <div className="flex space-x-4">
               {incident.status === 'submitted' && (
@@ -128,14 +195,14 @@ export default function ViewIncidentPage({ params }) {
                   }}
                   className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
                 >
-                  Edit Incident
+                  Edit {isMessage ? 'Message' : 'Incident'}
                 </button>
               )}
               <button
                 onClick={() => router.push('/incidents')}
                 className="text-blue-600 hover:text-blue-700"
               >
-                ← Back to Incidents
+                ← Back to {isMessage ? 'Messages' : 'Incidents'}
               </button>
             </div>
           </div>
@@ -143,24 +210,66 @@ export default function ViewIncidentPage({ params }) {
       </nav>
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Status Badge */}
-        <div className="mb-6">
+        {/* Status and Priority Badges */}
+        <div className="mb-6 flex space-x-3">
           <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full border ${getStatusColor(incident.status)}`}>
             Status: {incident.status.charAt(0).toUpperCase() + incident.status.slice(1)}
           </span>
+          {incident.priority && (
+            <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full border ${getPriorityColor(incident.priority)}`}>
+              Priority: {incident.priority.charAt(0).toUpperCase() + incident.priority.slice(1)}
+            </span>
+          )}
+          {isMessage && (
+            <span className="inline-flex px-3 py-1 text-sm font-semibold rounded-full border bg-purple-100 text-purple-800 border-purple-200">
+              💬 Message
+            </span>
+          )}
         </div>
+
+        {/* Recipient Information - NEW SECTION */}
+        {recipient && (
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">
+              📤 {isMessage ? 'Message Sent To' : 'Report Sent To'}
+            </h2>
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                  <span className="text-purple-600 font-medium text-lg">
+                    {recipient.name?.charAt(0) || '👤'}
+                  </span>
+                </div>
+                <div>
+                  <p className="font-medium text-purple-900">{recipient.name}</p>
+                  <p className="text-sm text-purple-700">{recipient.role}</p>
+                  {recipient.email && !recipient.isRoleFallback && (
+                    <p className="text-sm text-purple-600">{recipient.email}</p>
+                  )}
+                  {recipient.isRoleFallback && (
+                    <p className="text-xs text-purple-500 italic">Role-based recipient</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Basic Information */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <h2 className="text-lg font-medium text-gray-900 mb-4">Basic Information</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">Incident ID</label>
+              <label className="block text-sm font-medium text-gray-700">
+                {isMessage ? 'Message ID' : 'Incident ID'}
+              </label>
               <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">{incident.incidentId}</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Incident Type</label>
-              <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">{incident.incidentType}</p>
+              <label className="block text-sm font-medium text-gray-700">Type</label>
+              <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
+                {isMessage ? '💬' : '🚨'} {incident.incidentType}
+              </p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Date & Time</label>
@@ -199,9 +308,11 @@ export default function ViewIncidentPage({ params }) {
           </div>
         )}
 
-        {/* Incident Details */}
+        {/* Content */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Incident Description</h2>
+          <h2 className="text-lg font-medium text-gray-900 mb-4">
+            {isMessage ? 'Message Content' : 'Incident Description'}
+          </h2>
           <div className="bg-gray-50 p-4 rounded">
             <p className="text-sm text-gray-900 whitespace-pre-wrap">{incident.description}</p>
           </div>
@@ -265,7 +376,9 @@ export default function ViewIncidentPage({ params }) {
 
         {/* Guard Information */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Reporting Guard</h2>
+          <h2 className="text-lg font-medium text-gray-900 mb-4">
+            {isMessage ? 'Message From' : 'Reporting Guard'}
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">Guard Name</label>
@@ -280,10 +393,14 @@ export default function ViewIncidentPage({ params }) {
 
         {/* Timestamps */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Report Information</h2>
+          <h2 className="text-lg font-medium text-gray-900 mb-4">
+            {isMessage ? 'Message Information' : 'Report Information'}
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">Report Created</label>
+              <label className="block text-sm font-medium text-gray-700">
+                {isMessage ? 'Message Sent' : 'Report Created'}
+              </label>
               <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">{formatDate(incident.createdAt)}</p>
             </div>
             <div>

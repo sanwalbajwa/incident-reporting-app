@@ -13,6 +13,7 @@ const INCIDENT_TYPES = [
   'Property Damage',
   'Suspicious Activity',
   'Fire/Safety',
+  'Communication/Message', // Add this for communications
   'Other'
 ]
 
@@ -22,11 +23,14 @@ export default function EditIncidentPage({ params }) {
   const [loading, setLoading] = useState(false)
   const [pageLoading, setPageLoading] = useState(true)
   const [clients, setClients] = useState([])
+  const [recipients, setRecipients] = useState([]) // Add recipients state
   const [originalIncident, setOriginalIncident] = useState(null)
   const [formData, setFormData] = useState({
+    recipientId: '', // Add recipient field
     clientId: '',
     incidentType: '',
     customIncidentType: '',
+    priority: 'normal', // Add priority field
     incidentDate: '',
     incidentTime: '',
     locationWithinProperty: true,
@@ -41,6 +45,7 @@ export default function EditIncidentPage({ params }) {
     if (!session) router.push('/login')
     else {
       loadClients()
+      loadRecipients()
       loadIncident()
     }
   }, [session, status, router, params.id])
@@ -55,6 +60,19 @@ export default function EditIncidentPage({ params }) {
       }
     } catch (error) {
       console.error('Error loading clients:', error)
+    }
+  }
+
+  const loadRecipients = async () => {
+    try {
+      const response = await fetch('/api/recipients')
+      const data = await response.json()
+      
+      if (response.ok) {
+        setRecipients(data.recipients)
+      }
+    } catch (error) {
+      console.error('Error loading recipients:', error)
     }
   }
 
@@ -83,9 +101,11 @@ export default function EditIncidentPage({ params }) {
         
         // Populate form with incident data
         setFormData({
+          recipientId: incident.recipientId || '', // Include recipient
           clientId: incident.clientId || '',
           incidentType: incident.incidentType || '',
           customIncidentType: incident.incidentType === 'Other' ? incident.incidentType : '',
+          priority: incident.priority || 'normal', // Include priority
           incidentDate: incident.incidentDate || incident.incidentDateTime?.split('T')[0] || '',
           incidentTime: incident.incidentTime || incident.incidentDateTime?.split('T')[1]?.slice(0, 5) || '',
           locationWithinProperty: incident.withinProperty ?? true,
@@ -110,15 +130,20 @@ export default function EditIncidentPage({ params }) {
     setLoading(true)
 
     try {
+      const isCommunication = formData.incidentType === 'Communication/Message'
+      
       const incidentData = {
+        recipientId: formData.recipientId, // Include recipient
         clientId: formData.clientId,
         incidentType: formData.incidentType === 'Other' ? formData.customIncidentType : formData.incidentType,
+        priority: formData.priority, // Include priority
         incidentDate: formData.incidentDate,
         incidentTime: formData.incidentTime,
         incidentDateTime: new Date(`${formData.incidentDate}T${formData.incidentTime}`),
         withinProperty: formData.locationWithinProperty,
         location: formData.locationDescription,
         description: formData.description,
+        messageType: isCommunication ? 'communication' : 'incident' // Add message type
       }
 
       console.log('Updating incident data:', incidentData)
@@ -140,10 +165,15 @@ export default function EditIncidentPage({ params }) {
           await uploadNewFiles()
         }
         
-        alert(`Incident updated successfully!\nIncident ID: ${originalIncident.incidentId}`)
+        const isMessage = formData.incidentType === 'Communication/Message'
+        if (isMessage) {
+          alert(`Message updated successfully!\nMessage ID: ${originalIncident.incidentId}`)
+        } else {
+          alert(`Incident updated successfully!\nIncident ID: ${originalIncident.incidentId}`)
+        }
         router.push(`/incidents/${params.id}`)
       } else {
-        alert(`Error: ${data.error || 'Failed to update incident'}`)
+        alert(`Error: ${data.error || 'Failed to update'}`)
         console.error('Server error:', data)
       }
     } catch (error) {
@@ -215,6 +245,9 @@ export default function EditIncidentPage({ params }) {
     }
   }
 
+  // Check if this is a communication
+  const isCommunication = formData.incidentType === 'Communication/Message'
+
   if (status === 'loading' || pageLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -235,13 +268,13 @@ export default function EditIncidentPage({ params }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <h1 className="text-xl font-semibold text-gray-900">
-              Edit Incident - {originalIncident.incidentId}
+              Edit {isCommunication ? 'Message' : 'Incident'} - {originalIncident.incidentId}
             </h1>
             <button
               onClick={() => router.push(`/incidents/${params.id}`)}
               className="text-blue-600 hover:text-blue-700"
             >
-              ← Back to Incident
+              ← Back to {isCommunication ? 'Message' : 'Incident'}
             </button>
           </div>
         </div>
@@ -257,10 +290,10 @@ export default function EditIncidentPage({ params }) {
             </svg>
             <div className="ml-3">
               <h3 className="text-sm font-medium text-yellow-800">
-                Editing Incident Report
+                Editing {isCommunication ? 'Message' : 'Incident Report'}
               </h3>
               <p className="mt-1 text-sm text-yellow-700">
-                You can only edit incidents with "submitted" status. Once reviewed, incidents cannot be modified.
+                You can only edit {isCommunication ? 'messages' : 'incidents'} with "submitted" status. Once reviewed, {isCommunication ? 'messages' : 'incidents'} cannot be modified.
               </p>
             </div>
           </div>
@@ -270,16 +303,52 @@ export default function EditIncidentPage({ params }) {
           
           {/* Guard Information - Auto-filled (Read-only) */}
           <div className="mb-6 bg-blue-50 p-4 rounded-lg">
-            <h3 className="text-sm font-medium text-blue-800 mb-2">Reporting Guard (Auto-filled)</h3>
+            <h3 className="text-sm font-medium text-blue-800 mb-2">
+              {isCommunication ? 'Message From (Auto-filled)' : 'Reporting Guard (Auto-filled)'}
+            </h3>
             <div className="text-sm text-blue-700">
               <p><strong>Name:</strong> {originalIncident.guardName}</p>
               <p><strong>Email:</strong> {originalIncident.guardEmail}</p>
             </div>
           </div>
 
-          {/* Client Selection */}
+          {/* STEP 1: Recipient Selection */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
+              <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-bold mr-2">STEP 1</span>
+              Select Recipient *
+            </label>
+            <select
+              name="recipientId"
+              value={formData.recipientId}
+              onChange={handleChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">-- Select Recipient --</option>
+              {recipients.map(recipient => (
+                <option key={recipient._id} value={recipient._id}>
+                  {recipient.name} ({recipient.role})
+                </option>
+              ))}
+              {/* Fallback options if API not ready */}
+              {recipients.length === 0 && (
+                <>
+                  <option value="security_supervisor">Security Supervisor</option>
+                  <option value="maintenance">Maintenance Team</option>
+                  <option value="management">Management</option>
+                </>
+              )}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              Choose who should receive this {isCommunication ? 'message' : 'report'}
+            </p>
+          </div>
+
+          {/* STEP 2: Client Selection */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-bold mr-2">STEP 2</span>
               Select Client from Client List *
             </label>
             <select
@@ -298,11 +367,65 @@ export default function EditIncidentPage({ params }) {
             </select>
           </div>
 
+          {/* Message Type Selection */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Message Type *
+            </label>
+            <select
+              name="incidentType"
+              value={formData.incidentType}
+              onChange={handleChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">-- Select Type --</option>
+              <option value="Communication/Message">💬 Communication/Message</option>
+              <option disabled>──────────</option>
+              {INCIDENT_TYPES.filter(type => type !== 'Communication/Message').map(type => (
+                <option key={type} value={type}>🚨 {type}</option>
+              ))}
+            </select>
+
+            {formData.incidentType === 'Other' && (
+              <div className="mt-3">
+                <input
+                  type="text"
+                  name="customIncidentType"
+                  value={formData.customIncidentType}
+                  onChange={handleChange}
+                  required
+                  placeholder="Please specify the incident type"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Priority Selection (for communications) */}
+          {isCommunication && (
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Priority Level
+              </label>
+              <select
+                name="priority"
+                value={formData.priority}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="normal">📘 Normal</option>
+                <option value="urgent">📙 Urgent</option>
+                <option value="critical">📕 Critical</option>
+              </select>
+            </div>
+          )}
+
           {/* Date & Time */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Incident Date *
+                {isCommunication ? 'Message Date' : 'Incident Date'} *
               </label>
               <input
                 type="date"
@@ -316,7 +439,7 @@ export default function EditIncidentPage({ params }) {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Incident Time *
+                {isCommunication ? 'Message Time' : 'Incident Time'} *
               </label>
               <input
                 type="time"
@@ -329,10 +452,10 @@ export default function EditIncidentPage({ params }) {
             </div>
           </div>
 
-          {/* Incident Location */}
+          {/* Location */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-3">
-              Incident Location *
+              {isCommunication ? 'Related Location (if applicable)' : 'Incident Location'} *
             </label>
             
             <div className="mb-4">
@@ -368,48 +491,18 @@ export default function EditIncidentPage({ params }) {
               value={formData.locationDescription}
               onChange={handleChange}
               required
-              placeholder="Describe specific location (e.g., Main Lobby, Parking Level 2, East Entrance)"
+              placeholder={isCommunication 
+                ? "Location related to your message (e.g., Main Lobby, Parking Level 2)" 
+                : "Describe specific location (e.g., Main Lobby, Parking Level 2, East Entrance)"
+              }
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
 
-          {/* Incident Type */}
+          {/* Description */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Incident Type (Dropdown) *
-            </label>
-            <select
-              name="incidentType"
-              value={formData.incidentType}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">-- Select Incident Type --</option>
-              {INCIDENT_TYPES.map(type => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
-
-            {formData.incidentType === 'Other' && (
-              <div className="mt-3">
-                <input
-                  type="text"
-                  name="customIncidentType"
-                  value={formData.customIncidentType}
-                  onChange={handleChange}
-                  required
-                  placeholder="Please specify the incident type"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Incident Description */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Incident Description (Text box for detailed account) *
+              {isCommunication ? 'Message Content' : 'Incident Description'} *
             </label>
             <textarea
               name="description"
@@ -417,7 +510,10 @@ export default function EditIncidentPage({ params }) {
               onChange={handleChange}
               required
               rows="5"
-              placeholder="Provide a detailed account of what happened..."
+              placeholder={isCommunication 
+                ? "Enter your message to headquarters..."
+                : "Provide a detailed account of what happened, when, where, who was involved, what actions you took, etc."
+              }
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -491,9 +587,16 @@ export default function EditIncidentPage({ params }) {
             <button
               type="submit"
               disabled={loading}
-              className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 disabled:bg-blue-300 font-medium flex-1"
+              className={`font-medium flex-1 px-6 py-3 rounded-md transition-colors ${
+                isCommunication 
+                  ? 'bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300' 
+                  : 'bg-green-600 hover:bg-green-700 disabled:bg-green-300'
+              } text-white`}
             >
-              {loading ? 'Updating Incident...' : 'Update Incident'}
+              {loading 
+                ? (isCommunication ? 'Updating Message...' : 'Updating Incident...') 
+                : (isCommunication ? '💬 Update Message' : '🚨 Update Incident')
+              }
             </button>
             
             <button
