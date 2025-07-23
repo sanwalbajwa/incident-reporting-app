@@ -206,23 +206,6 @@ export default function NewIncidentPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
-      <nav className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <h1 className="text-xl font-semibold text-gray-900">
-              {isCommunication ? 'Send Message to Headquarters' : 'Report New Incident'}
-            </h1>
-            <button
-              onClick={() => router.push('/incidents')}
-              className="text-blue-600 hover:text-blue-700"
-            >
-              ← Back to Incidents
-            </button>
-          </div>
-        </div>
-      </nav>
-
       <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6">
           

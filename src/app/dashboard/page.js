@@ -96,35 +96,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <h1 className="text-xl font-semibold text-gray-900">
-              Guard Dashboard
-            </h1>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">
-                Welcome, {session.user.name}
-              </span>
-              {/* Add refresh button */}
-              <button
-                onClick={handleRefresh}
-                className="text-blue-600 hover:text-blue-700 text-sm"
-                title="Refresh status"
-              >
-                🔄 Refresh
-              </button>
-              <button
-                onClick={() => signOut()}
-                className="bg-red-600 text-white px-4 py-2 rounded-md text-sm hover:bg-red-700"
-              >
-                Sign Out
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
         {/* Shift Status - Prominent Section */}

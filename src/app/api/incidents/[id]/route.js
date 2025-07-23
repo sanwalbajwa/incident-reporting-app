@@ -20,9 +20,12 @@ export async function GET(request, { params }) {
     if (!incident) {
       return Response.json({ error: 'Incident not found' }, { status: 404 })
     }
-    
-    // Check if this incident belongs to the current guard
-    if (incident.guardId.toString() !== session.user.id) {
+
+    // Check if this incident belongs to the current guard OR if they are the recipient
+    const isOwner = incident.guardId.toString() === session.user.id
+    const isRecipient = incident.recipientId === session.user.id || incident.recipientId === session.user.role
+
+    if (!isOwner && !isRecipient) {
       return Response.json({ error: 'Access denied' }, { status: 403 })
     }
     

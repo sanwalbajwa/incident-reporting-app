@@ -167,10 +167,17 @@ export default function ViewIncidentPage({ params }) {
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Incident Not Found</h1>
           <button
-            onClick={() => router.push('/incidents')}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+            onClick={() => {
+              // If user is supervisor, go back to supervisor dashboard
+              if (session.user.role === 'security_supervisor') {
+                router.push('/supervisor-dashboard')
+              } else {
+                router.push('/incidents')
+              }
+            }}
+            className="text-blue-600 hover:text-blue-700"
           >
-            Back to Incidents
+            ← Back to {session.user.role === 'security_supervisor' ? 'Dashboard' : 'Incidents'}
           </button>
         </div>
       </div>
@@ -179,36 +186,6 @@ export default function ViewIncidentPage({ params }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
-      <nav className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <h1 className="text-xl font-semibold text-gray-900">
-              {isMessage ? '💬 Message Details' : '🚨 Incident Details'} - {incident.incidentId}
-            </h1>
-            <div className="flex space-x-4">
-              {incident.status === 'submitted' && (
-                <button
-                  onClick={async () => {
-                    const resolvedParams = await params
-                    router.push(`/incidents/edit/${resolvedParams.id}`)
-                  }}
-                  className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
-                >
-                  Edit {isMessage ? 'Message' : 'Incident'}
-                </button>
-              )}
-              <button
-                onClick={() => router.push('/incidents')}
-                className="text-blue-600 hover:text-blue-700"
-              >
-                ← Back to {isMessage ? 'Messages' : 'Incidents'}
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Status and Priority Badges */}
         <div className="mb-6 flex space-x-3">
