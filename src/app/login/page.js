@@ -1,6 +1,6 @@
 'use client'
-import { useState } from 'react'
-import { signIn } from 'next-auth/react'
+import { useState, useEffect } from 'react'
+import { signIn, useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
@@ -12,6 +12,32 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const { data: session, status } = useSession()
+
+  // Redirect based on role when session is available
+  useEffect(() => {
+    if (status === 'loading') return // Still loading
+
+    if (session) {
+      // Redirect based on user role
+      switch (session.user.role) {
+        case 'guard':
+          router.push('/dashboard')
+          break
+        case 'security_supervisor':
+          router.push('/supervisor-dashboard')
+          break
+        case 'maintenance':
+          router.push('/maintenance-dashboard')
+          break
+        case 'management':
+          router.push('/management-dashboard')
+          break
+        default:
+          router.push('/dashboard')
+      }
+    }
+  }, [session, status, router])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -26,10 +52,11 @@ export default function LoginPage() {
 
     if (result?.error) {
       setError('Invalid email or password')
+      setLoading(false)
     } else {
-      router.push('/dashboard')
+      // Don't manually redirect here - let useEffect handle it based on role
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   const handleChange = (e) => {
@@ -39,12 +66,35 @@ export default function LoginPage() {
     })
   }
 
+  // Show loading while checking session
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // If already logged in, don't show login form
+  if (session) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">Redirecting to your dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="max-w-md w-full bg-white rounded-lg shadow-md p-6">
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Guard Login</h1>
-          <p className="text-gray-600">Incident Reporting System</p>
+          <h1 className="text-2xl font-bold text-gray-900">Sign In</h1>
+          <p className="text-gray-600">IRPA - Incident Reporting System</p>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -59,7 +109,7 @@ export default function LoginPage() {
               onChange={handleChange}
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="guard@example.com"
+              placeholder="user@example.com"
             />
           </div>
 
@@ -100,6 +150,13 @@ export default function LoginPage() {
               Sign up here
             </Link>
           </p>
+        </div>
+
+        {/* Demo credentials for testing */}
+        <div className="mt-4 p-3 bg-gray-50 rounded text-xs text-gray-600">
+          <p className="font-medium mb-1">Demo Accounts:</p>
+          <p>Guard: guard@test.com / 123456</p>
+          <p>Supervisor: supervisor@test.com / 123456</p>
         </div>
       </div>
     </div>

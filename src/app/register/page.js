@@ -9,6 +9,7 @@ export default function RegisterPage() {
     email: '',
     password: '',
     confirmPassword: '',
+    role: '', // Add role field
     employeeId: '',
     phone: ''
   })
@@ -34,6 +35,12 @@ export default function RegisterPage() {
       return
     }
 
+    if (!formData.role) {
+      setError('Please select a role')
+      setLoading(false)
+      return
+    }
+
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
@@ -44,6 +51,7 @@ export default function RegisterPage() {
           fullName: formData.fullName,
           email: formData.email,
           password: formData.password,
+          role: formData.role, // Include role in submission
           employeeId: formData.employeeId,
           phone: formData.phone
         })
@@ -73,7 +81,7 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-8">
       <div className="max-w-md w-full bg-white rounded-lg shadow-md p-6">
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Guard Registration</h1>
+          <h1 className="text-2xl font-bold text-gray-900">User Registration</h1>
           <p className="text-gray-600">Create your account</p>
         </div>
 
@@ -104,35 +112,7 @@ export default function RegisterPage() {
               onChange={handleChange}
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="guard@example.com"
-            />
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Employee ID
-            </label>
-            <input
-              type="text"
-              name="employeeId"
-              value={formData.employeeId}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="EMP001"
-            />
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Phone
-            </label>
-            <input
-              type="tel"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="+1234567890"
+              placeholder="user@example.com"
             />
           </div>
 
@@ -151,7 +131,7 @@ export default function RegisterPage() {
             />
           </div>
 
-          <div className="mb-6">
+          <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Confirm Password *
             </label>
@@ -163,6 +143,54 @@ export default function RegisterPage() {
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Confirm password"
+            />
+          </div>
+
+          {/* NEW ROLE SELECTION DROPDOWN */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Role *
+            </label>
+            <select
+              name="role"
+              value={formData.role}
+              onChange={handleChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select Role</option>
+              <option value="guard">Guard</option>
+              <option value="security_supervisor">Security Supervisor</option>
+              <option value="maintenance">Maintenance Team</option>
+              <option value="management">Management</option>
+            </select>
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Employee ID
+            </label>
+            <input
+              type="text"
+              name="employeeId"
+              value={formData.employeeId}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="EMP001"
+            />
+          </div>
+
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Phone
+            </label>
+            <input
+              type="tel"
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="+1234567890"
             />
           </div>
 
