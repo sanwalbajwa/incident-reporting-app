@@ -7,6 +7,13 @@ export default function SupervisorDashboard() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [loading, setLoading] = useState(true)
+  const [messages, setMessages] = useState([])
+  const [stats, setStats] = useState({
+    totalMessages: 0,
+    unreadMessages: 0,
+    todayMessages: 0,
+    urgentMessages: 0
+  })
 
   useEffect(() => {
     if (status === 'loading') return // Still loading
@@ -21,8 +28,78 @@ export default function SupervisorDashboard() {
       return
     }
     
+    loadMessages()
     setLoading(false)
   }, [session, status, router])
+
+  const loadMessages = async () => {
+    try {
+      const response = await fetch('/api/supervisor/messages?limit=10')
+      const data = await response.json()
+      
+      if (response.ok) {
+        setMessages(data.messages || [])
+        
+        // Calculate stats
+        const messages = data.messages || []
+        const today = new Date().toDateString()
+        
+        setStats({
+          totalMessages: data.total || 0,
+          unreadMessages: messages.filter(m => !m.readAt).length,
+          todayMessages: messages.filter(m => 
+            new Date(m.createdAt).toDateString() === today
+          ).length,
+          urgentMessages: messages.filter(m => 
+            m.priority === 'urgent' || m.priority === 'critical'
+          ).length
+        })
+      }
+    } catch (error) {
+      console.error('Error loading messages:', error)
+    }
+  }
+
+  const markAsRead = async (messageId) => {
+    try {
+      const response = await fetch('/api/supervisor/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          messageId,
+          action: 'mark_read'
+        })
+      })
+
+      if (response.ok) {
+        // Refresh messages
+        loadMessages()
+      }
+    } catch (error) {
+      console.error('Error marking message as read:', error)
+    }
+  }
+
+  const formatDate = (date) => {
+    return new Date(date).toLocaleString()
+  }
+
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case 'critical':
+        return 'bg-red-100 text-red-800 border-red-200'
+      case 'urgent':
+        return 'bg-orange-100 text-orange-800 border-orange-200'
+      default:
+        return 'bg-blue-100 text-blue-800 border-blue-200'
+    }
+  }
+
+  const getMessageTypeIcon = (messageType) => {
+    return messageType === 'communication' ? '💬' : '🚨'
+  }
 
   if (status === 'loading' || loading) {
     return (
@@ -48,6 +125,13 @@ export default function SupervisorDashboard() {
               Supervisor Dashboard
             </h1>
             <div className="flex items-center space-x-4">
+              <button
+                onClick={loadMessages}
+                className="text-blue-600 hover:text-blue-700 text-sm"
+                title="Refresh messages"
+              >
+                🔄 Refresh
+              </button>
               <span className="text-sm text-gray-600">
                 Welcome, {session.user.name}
               </span>
@@ -67,38 +151,18 @@ export default function SupervisorDashboard() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
-        {/* Welcome Section */}
-        <div className="bg-white rounded-lg shadow p-8 mb-8 text-center">
-          <div className="max-w-2xl mx-auto">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              Security Supervisor Panel
-            </h2>
-            <p className="text-gray-600 mb-6">
-              Monitor and manage incident reports, communications from guards, and oversee security operations.
-            </p>
-            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-              <p className="text-purple-800 font-medium">
-                🎯 Your Role: You can receive and review communications and incident reports from guards.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Stats */}
+        {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                  <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
-                    <path fillRule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clipRule="evenodd"></path>
-                  </svg>
+                  <span className="text-blue-600 text-lg">📨</span>
                 </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">New Messages</p>
-                <p className="text-2xl font-bold text-gray-900">0</p>
+                <p className="text-sm font-medium text-gray-500">Total Messages</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalMessages}</p>
               </div>
             </div>
           </div>
@@ -107,14 +171,12 @@ export default function SupervisorDashboard() {
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
-                  <svg className="w-5 h-5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"></path>
-                  </svg>
+                  <span className="text-yellow-600 text-lg">📬</span>
                 </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Pending Reports</p>
-                <p className="text-2xl font-bold text-gray-900">0</p>
+                <p className="text-sm font-medium text-gray-500">Unread</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.unreadMessages}</p>
               </div>
             </div>
           </div>
@@ -123,14 +185,12 @@ export default function SupervisorDashboard() {
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                  <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
-                  </svg>
+                  <span className="text-green-600 text-lg">📅</span>
                 </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Active Guards</p>
-                <p className="text-2xl font-bold text-gray-900">0</p>
+                <p className="text-sm font-medium text-gray-500">Today</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.todayMessages}</p>
               </div>
             </div>
           </div>
@@ -138,63 +198,137 @@ export default function SupervisorDashboard() {
           <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                  <svg className="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"></path>
-                  </svg>
+                <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                  <span className="text-red-600 text-lg">🚨</span>
                 </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Total Guards</p>
-                <p className="text-2xl font-bold text-gray-900">0</p>
+                <p className="text-sm font-medium text-gray-500">Urgent</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.urgentMessages}</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Main Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">📨 Guard Messages</h3>
-            <p className="text-gray-600 mb-4">View and respond to messages from security guards.</p>
-            <button className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
-              View Messages
-            </button>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">📋 Incident Reports</h3>
-            <p className="text-gray-600 mb-4">Review and manage incident reports submitted by guards.</p>
-            <button className="bg-yellow-600 text-white px-4 py-2 rounded-md hover:bg-yellow-700 transition-colors">
-              View Reports
-            </button>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">👥 Guard Management</h3>
-            <p className="text-gray-600 mb-4">Monitor guard activities and shift schedules.</p>
-            <button className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors">
-              Manage Guards
-            </button>
-          </div>
-        </div>
-
-        {/* Development Notice */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-          <div className="flex">
-            <svg className="flex-shrink-0 h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"></path>
-            </svg>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-blue-800">
-                Development Status
-              </h3>
-              <p className="mt-1 text-sm text-blue-700">
-                This supervisor dashboard is ready for implementation. Next steps: Add message viewing system and incident report review functionality.
-              </p>
+        {/* Recent Messages */}
+        <div className="bg-white rounded-lg shadow">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-medium text-gray-900">
+                Recent Messages & Reports
+              </h2>
+              <div className="flex space-x-2">
+                <button className="text-sm bg-blue-100 text-blue-800 px-3 py-1 rounded-full">
+                  All ({stats.totalMessages})
+                </button>
+                <button className="text-sm bg-gray-100 text-gray-700 px-3 py-1 rounded-full hover:bg-gray-200">
+                  Communications
+                </button>
+                <button className="text-sm bg-gray-100 text-gray-700 px-3 py-1 rounded-full hover:bg-gray-200">
+                  Incidents
+                </button>
+              </div>
             </div>
           </div>
+
+          {messages.length > 0 ? (
+            <div className="divide-y divide-gray-200">
+              {messages.map((message) => (
+                <div 
+                  key={message._id} 
+                  className={`p-6 hover:bg-gray-50 transition-colors ${
+                    !message.readAt ? 'bg-blue-50 border-l-4 border-l-blue-400' : ''
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3 mb-2">
+                        <span className="text-lg">
+                          {getMessageTypeIcon(message.messageType)}
+                        </span>
+                        <h3 className="text-sm font-medium text-gray-900">
+                          {message.incidentType}
+                        </h3>
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getPriorityColor(message.priority)}`}>
+                          {message.priority || 'normal'}
+                        </span>
+                        {!message.readAt && (
+                          <span className="bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-bold">
+                            NEW
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div className="text-sm text-gray-600 mb-2">
+                        <span className="font-medium">From:</span> {message.guardName} ({message.guardEmail})
+                      </div>
+                      
+                      {message.client && (
+                        <div className="text-sm text-gray-600 mb-2">
+                          <span className="font-medium">Property:</span> {message.client.name} - {message.client.location}
+                        </div>
+                      )}
+                      
+                      <div className="text-sm text-gray-600 mb-3">
+                        <span className="font-medium">Location:</span> {message.location}
+                      </div>
+                      
+                      <p className="text-sm text-gray-900 mb-3">
+                        {message.description.length > 150 
+                          ? `${message.description.substring(0, 150)}...` 
+                          : message.description
+                        }
+                      </p>
+                      
+                      <div className="flex items-center space-x-4 text-xs text-gray-500">
+                        <span>{formatDate(message.createdAt)}</span>
+                        {message.attachments && message.attachments.length > 0 && (
+                          <span>📎 {message.attachments.length} attachment(s)</span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-col space-y-2 ml-4">
+                      <button
+                        onClick={() => router.push(`/incidents/${message._id}`)}
+                        className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                      >
+                        View Details
+                      </button>
+                      {!message.readAt && (
+                        <button
+                          onClick={() => markAsRead(message._id)}
+                          className="text-green-600 hover:text-green-700 text-sm font-medium"
+                        >
+                          Mark Read
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-8 text-center">
+              <div className="text-gray-400 mb-4">
+                <span className="text-4xl">📭</span>
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No messages yet</h3>
+              <p className="text-gray-600">
+                Messages and incident reports from guards will appear here.
+              </p>
+            </div>
+          )}
         </div>
+
+        {/* Action Buttons */}
+        {messages.length > 10 && (
+          <div className="mt-6 text-center">
+            <button className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700">
+              View All Messages
+            </button>
+          </div>
+        )}
 
       </main>
     </div>

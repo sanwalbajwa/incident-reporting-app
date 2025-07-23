@@ -13,6 +13,7 @@ const INCIDENT_TYPES = [
   'Property Damage',
   'Suspicious Activity',
   'Fire/Safety',
+  'Communication/Message', // Add this for communications
   'Other'
 ]
 
@@ -21,16 +22,19 @@ export default function NewIncidentPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [clients, setClients] = useState([])
+  const [recipients, setRecipients] = useState([]) // Add recipients state
   const [formData, setFormData] = useState({
+    recipientId: '', // Add recipient field
     clientId: '',
     incidentType: '',
     customIncidentType: '',
+    priority: 'normal', // Add priority for communications
     incidentDate: '',
     incidentTime: '',
-    locationWithinProperty: true, // true = within, false = outside but impacts
+    locationWithinProperty: true,
     locationDescription: '',
     description: '',
-    attachments: [] // For future file uploads
+    attachments: []
   })
 
   // Redirect if not logged in
@@ -39,10 +43,11 @@ export default function NewIncidentPage() {
     if (!session) router.push('/login')
   }, [session, status, router])
 
-  // Load clients and set current date/time
+  // Load clients and recipients
   useEffect(() => {
     if (session) {
       loadClients()
+      loadRecipients()
       // Auto-fill current date and time
       const now = new Date()
       setFormData(prev => ({
@@ -66,85 +71,106 @@ export default function NewIncidentPage() {
     }
   }
 
-  const handleSubmit = async (e) => {
-  e.preventDefault()
-  setLoading(true)
-
-  try {
-    // Step 1: Create incident without files (as before)
-    const incidentData = {
-      clientId: formData.clientId,
-      incidentType: formData.incidentType === 'Other' ? formData.customIncidentType : formData.incidentType,
-      incidentDate: formData.incidentDate,
-      incidentTime: formData.incidentTime,
-      incidentDateTime: new Date(`${formData.incidentDate}T${formData.incidentTime}`),
-      withinProperty: formData.locationWithinProperty,
-      location: formData.locationDescription,
-      description: formData.description,
-    }
-
-    console.log('Submitting incident data:', incidentData)
-
-    // Create incident first
-    const response = await fetch('/api/incidents/create', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(incidentData)
-    })
-
-    const data = await response.json()
-    console.log('Response data:', data)
-
-    if (response.ok) {
-      const incidentId = data.incident._id
+  const loadRecipients = async () => {
+    try {
+      const response = await fetch('/api/recipients')
+      const data = await response.json()
       
-      // Step 2: Upload files if any exist
-      if (formData.attachments && formData.attachments.length > 0) {
-        await uploadFiles(incidentId)
+      if (response.ok) {
+        setRecipients(data.recipients)
       }
+    } catch (error) {
+      console.error('Error loading recipients:', error)
+      // If API doesn't exist yet, we'll create it next
+    }
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+
+    try {
+      // Determine if this is a communication or incident
+      const isCommunication = formData.incidentType === 'Communication/Message'
       
-      alert(`Incident reported successfully!\nIncident ID: ${data.incident.incidentId}`)
-      router.push('/incidents')
-    } else {
-      alert(`Error: ${data.error || 'Failed to report incident'}`)
-      console.error('Server error:', data)
+      const incidentData = {
+        recipientId: formData.recipientId, // Include recipient
+        clientId: formData.clientId,
+        incidentType: formData.incidentType === 'Other' ? formData.customIncidentType : formData.incidentType,
+        priority: formData.priority, // Include priority
+        incidentDate: formData.incidentDate,
+        incidentTime: formData.incidentTime,
+        incidentDateTime: new Date(`${formData.incidentDate}T${formData.incidentTime}`),
+        withinProperty: formData.locationWithinProperty,
+        location: formData.locationDescription,
+        description: formData.description,
+        messageType: isCommunication ? 'communication' : 'incident' // Add message type
+      }
+
+      console.log('Submitting data:', incidentData)
+
+      // Create incident/communication
+      const response = await fetch('/api/incidents/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(incidentData)
+      })
+
+      const data = await response.json()
+      console.log('Response data:', data)
+
+      if (response.ok) {
+        const incidentId = data.incident._id
+        
+        // Upload files if any exist
+        if (formData.attachments && formData.attachments.length > 0) {
+          await uploadFiles(incidentId)
+        }
+        
+        if (isCommunication) {
+          alert(`Message sent successfully to recipient!\nMessage ID: ${data.incident.incidentId}`)
+        } else {
+          alert(`Incident reported successfully!\nIncident ID: ${data.incident.incidentId}`)
+        }
+        router.push('/incidents')
+      } else {
+        alert(`Error: ${data.error || 'Failed to submit'}`)
+        console.error('Server error:', data)
+      }
+    } catch (error) {
+      alert(`Network error: ${error.message}`)
+      console.error('Network error:', error)
     }
-  } catch (error) {
-    alert(`Network error: ${error.message}`)
-    console.error('Network error:', error)
+    setLoading(false)
   }
-  setLoading(false)
-}
 
-// Separate function to upload files
-const uploadFiles = async (incidentId) => {
-  try {
-    const formDataToSend = new FormData()
-    formDataToSend.append('incidentId', incidentId)
-    
-    for (let i = 0; i < formData.attachments.length; i++) {
-      formDataToSend.append('files', formData.attachments[i])
+  // Separate function to upload files
+  const uploadFiles = async (incidentId) => {
+    try {
+      const formDataToSend = new FormData()
+      formDataToSend.append('incidentId', incidentId)
+      
+      for (let i = 0; i < formData.attachments.length; i++) {
+        formDataToSend.append('files', formData.attachments[i])
+      }
+
+      const uploadResponse = await fetch('/api/incidents/upload', {
+        method: 'POST',
+        body: formDataToSend
+      })
+
+      const uploadData = await uploadResponse.json()
+      console.log('File upload response:', uploadData)
+      
+      if (!uploadResponse.ok) {
+        console.error('File upload failed:', uploadData.error)
+      }
+    } catch (error) {
+      console.error('File upload error:', error)
     }
-
-    const uploadResponse = await fetch('/api/incidents/upload', {
-      method: 'POST',
-      body: formDataToSend
-    })
-
-    const uploadData = await uploadResponse.json()
-    console.log('File upload response:', uploadData)
-    
-    if (!uploadResponse.ok) {
-      console.error('File upload failed:', uploadData.error)
-      // Don't fail the whole process, just log the error
-    }
-  } catch (error) {
-    console.error('File upload error:', error)
-    // Don't fail the whole process
   }
-}
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -161,6 +187,9 @@ const uploadFiles = async (incidentId) => {
       attachments: files
     }))
   }
+
+  // Check if this is a communication
+  const isCommunication = formData.incidentType === 'Communication/Message'
 
   if (status === 'loading') {
     return (
@@ -181,7 +210,9 @@ const uploadFiles = async (incidentId) => {
       <nav className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <h1 className="text-xl font-semibold text-gray-900">Report New Incident</h1>
+            <h1 className="text-xl font-semibold text-gray-900">
+              {isCommunication ? 'Send Message to Headquarters' : 'Report New Incident'}
+            </h1>
             <button
               onClick={() => router.push('/incidents')}
               className="text-blue-600 hover:text-blue-700"
@@ -204,9 +235,43 @@ const uploadFiles = async (incidentId) => {
             </div>
           </div>
 
-          {/* Client Selection */}
+          {/* STEP 1: Recipient Selection */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
+              <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-bold mr-2">STEP 1</span>
+              Select Recipient *
+            </label>
+            <select
+              name="recipientId"
+              value={formData.recipientId}
+              onChange={handleChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">-- Select Recipient --</option>
+              {recipients.map(recipient => (
+                <option key={recipient._id} value={recipient._id}>
+                  {recipient.name} ({recipient.role})
+                </option>
+              ))}
+              {/* Fallback options if API not ready */}
+              {recipients.length === 0 && (
+                <>
+                  <option value="security_supervisor">Security Supervisor</option>
+                  <option value="maintenance">Maintenance Team</option>
+                  <option value="management">Management</option>
+                </>
+              )}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              Choose who should receive this report or message
+            </p>
+          </div>
+
+          {/* STEP 2: Client Selection */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-bold mr-2">STEP 2</span>
               Select Client from Client List *
             </label>
             <select
@@ -225,11 +290,65 @@ const uploadFiles = async (incidentId) => {
             </select>
           </div>
 
-          {/* Date & Time - Auto-filled */}
+          {/* Message Type Selection */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Message Type *
+            </label>
+            <select
+              name="incidentType"
+              value={formData.incidentType}
+              onChange={handleChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">-- Select Type --</option>
+              <option value="Communication/Message">💬 Communication/Message</option>
+              <option disabled>──────────</option>
+              {INCIDENT_TYPES.filter(type => type !== 'Communication/Message').map(type => (
+                <option key={type} value={type}>🚨 {type}</option>
+              ))}
+            </select>
+
+            {formData.incidentType === 'Other' && (
+              <div className="mt-3">
+                <input
+                  type="text"
+                  name="customIncidentType"
+                  value={formData.customIncidentType}
+                  onChange={handleChange}
+                  required
+                  placeholder="Please specify the incident type"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Priority Selection (for communications) */}
+          {isCommunication && (
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Priority Level
+              </label>
+              <select
+                name="priority"
+                value={formData.priority}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="normal">📘 Normal</option>
+                <option value="urgent">📙 Urgent</option>
+                <option value="critical">📕 Critical</option>
+              </select>
+            </div>
+          )}
+
+          {/* Date & Time */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Incident Date (Auto-filled Current) *
+                {isCommunication ? 'Message Date' : 'Incident Date'} (Auto-filled) *
               </label>
               <input
                 type="date"
@@ -243,7 +362,7 @@ const uploadFiles = async (incidentId) => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Incident Time (Auto-filled Current) *
+                {isCommunication ? 'Message Time' : 'Incident Time'} (Auto-filled) *
               </label>
               <input
                 type="time"
@@ -256,13 +375,12 @@ const uploadFiles = async (incidentId) => {
             </div>
           </div>
 
-          {/* Incident Location */}
+          {/* Location */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-3">
-              Incident Location *
+              {isCommunication ? 'Related Location (if applicable)' : 'Incident Location'} *
             </label>
             
-            {/* Location Type Radio Buttons */}
             <div className="mb-4">
               <label className="flex items-center mb-2">
                 <input
@@ -290,56 +408,24 @@ const uploadFiles = async (incidentId) => {
               </label>
             </div>
 
-            {/* Location Description */}
             <input
               type="text"
               name="locationDescription"
               value={formData.locationDescription}
               onChange={handleChange}
               required
-              placeholder="Describe specific location (e.g., Main Lobby, Parking Level 2, East Entrance)"
+              placeholder={isCommunication 
+                ? "Location related to your message (e.g., Main Lobby, Parking Level 2)" 
+                : "Describe specific location (e.g., Main Lobby, Parking Level 2, East Entrance)"
+              }
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
 
-          {/* Incident Type */}
+          {/* Description */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Incident Type (Dropdown) *
-            </label>
-            <select
-              name="incidentType"
-              value={formData.incidentType}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">-- Select Incident Type --</option>
-              {INCIDENT_TYPES.map(type => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
-
-            {/* Custom Incident Type if "Other" selected */}
-            {formData.incidentType === 'Other' && (
-              <div className="mt-3">
-                <input
-                  type="text"
-                  name="customIncidentType"
-                  value={formData.customIncidentType}
-                  onChange={handleChange}
-                  required
-                  placeholder="Please specify the incident type"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Incident Description */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Incident Description (Text box for detailed account) *
+              {isCommunication ? 'Message Content' : 'Incident Description'} *
             </label>
             <textarea
               name="description"
@@ -347,7 +433,10 @@ const uploadFiles = async (incidentId) => {
               onChange={handleChange}
               required
               rows="5"
-              placeholder="Provide a detailed account of what happened, when, where, who was involved, what actions you took, etc."
+              placeholder={isCommunication 
+                ? "Enter your message to headquarters..."
+                : "Provide a detailed account of what happened, when, where, who was involved, what actions you took, etc."
+              }
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -384,9 +473,16 @@ const uploadFiles = async (incidentId) => {
             <button
               type="submit"
               disabled={loading}
-              className="bg-red-600 text-white px-6 py-3 rounded-md hover:bg-red-700 disabled:bg-red-300 font-medium flex-1"
+              className={`font-medium flex-1 px-6 py-3 rounded-md transition-colors ${
+                isCommunication 
+                  ? 'bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300' 
+                  : 'bg-red-600 hover:bg-red-700 disabled:bg-red-300'
+              } text-white`}
             >
-              {loading ? 'Submitting Incident Report...' : 'Submit Incident Report'}
+              {loading 
+                ? (isCommunication ? 'Sending Message...' : 'Submitting Incident...') 
+                : (isCommunication ? '📤 Send Message' : '🚨 Submit Incident Report')
+              }
             </button>
             
             <button
