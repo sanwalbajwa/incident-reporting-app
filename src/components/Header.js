@@ -2,6 +2,26 @@
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useState } from 'react'
+import { 
+  Home, 
+  FileText, 
+  Building2, 
+  Users, 
+  BarChart3, 
+  Mail, 
+  Wrench, 
+  TrendingUp,
+  User,
+  LogOut,
+  Menu,
+  X,
+  ChevronDown,
+  Settings,
+  Shield,
+  HardHat,
+  Crown,
+  UserCheck
+} from 'lucide-react'
 
 export default function Header() {
   const { data: session } = useSession()
@@ -42,6 +62,22 @@ export default function Header() {
     }
   }
 
+  // Get role icon
+  const getRoleIcon = () => {
+    switch (session.user.role) {
+      case 'security_supervisor':
+        return <Shield className="w-4 h-4" />
+      case 'maintenance':
+        return <HardHat className="w-4 h-4" />
+      case 'management':
+        return <Crown className="w-4 h-4" />
+      case 'guard':
+        return <UserCheck className="w-4 h-4" />
+      default:
+        return <User className="w-4 h-4" />
+    }
+  }
+
   // Get role color with gradient
   const getRoleGradient = () => {
     switch (session.user.role) {
@@ -66,7 +102,7 @@ export default function Header() {
     items.push({
       name: 'Dashboard',
       href: getDashboardUrl(),
-      icon: '🏠',
+      icon: Home,
       active: pathname === getDashboardUrl()
     })
 
@@ -76,35 +112,23 @@ export default function Header() {
         {
           name: 'My Reports',
           href: '/incidents',
-          icon: '📋',
+          icon: FileText,
           active: pathname.startsWith('/incidents') && pathname !== '/incidents/new'
         },
         {
           name: 'Clients',
           href: '/clients',
-          icon: '🏢',
+          icon: Building2,
           active: pathname === '/clients'
         }
       )
     } else if (session.user.role === 'security_supervisor') {
       // Supervisor-specific navigation
       items.push(
-        // {
-        //   name: 'All Reports',
-        //   href: '/supervisor/reports',
-        //   icon: '📊',
-        //   active: pathname.startsWith('/supervisor/reports')
-        // },
-        // {
-        //   name: 'Guard Management',
-        //   href: '/supervisor/guards',
-        //   icon: '👥',
-        //   active: pathname.startsWith('/supervisor/guards')
-        // },
         {
           name: 'Add Client',
           href: '/clients',
-          icon: '👥',
+          icon: Users,
           active: pathname.startsWith('/supervisor/guards')
         }
       )
@@ -114,13 +138,13 @@ export default function Header() {
         {
           name: 'Work Orders',
           href: '/maintenance/orders',
-          icon: '🔧',
+          icon: Wrench,
           active: pathname.startsWith('/maintenance/orders')
         },
         {
           name: 'Messages',
           href: '/maintenance/messages',
-          icon: '📨',
+          icon: Mail,
           active: pathname.startsWith('/maintenance/messages')
         }
       )
@@ -130,19 +154,19 @@ export default function Header() {
         {
           name: 'Overview',
           href: '/management/overview',
-          icon: '📈',
+          icon: TrendingUp,
           active: pathname.startsWith('/management/overview')
         },
         {
           name: 'Reports',
           href: '/management/reports',
-          icon: '📊',
+          icon: BarChart3,
           active: pathname.startsWith('/management/reports')
         },
         {
           name: 'Messages',
           href: '/management/messages',
-          icon: '📨',
+          icon: Mail,
           active: pathname.startsWith('/management/messages')
         }
       )
@@ -180,23 +204,26 @@ export default function Header() {
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center space-x-2">
-            {navigationItems.map((item) => (
-              <button
-                key={item.name}
-                onClick={() => router.push(item.href)}
-                className={`relative px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 group ${
-                  item.active
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg transform -translate-y-0.5'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}
-              >
-                <span className="text-base mr-2">{item.icon}</span>
-                <span>{item.name}</span>
-                {item.active && (
-                  <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl opacity-20 blur-sm"></div>
-                )}
-              </button>
-            ))}
+            {navigationItems.map((item) => {
+              const IconComponent = item.icon
+              return (
+                <button
+                  key={item.name}
+                  onClick={() => router.push(item.href)}
+                  className={`relative px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 group flex items-center space-x-2 ${
+                    item.active
+                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg transform -translate-y-0.5'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                >
+                  <IconComponent className="w-4 h-4" />
+                  <span>{item.name}</span>
+                  {item.active && (
+                    <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl opacity-20 blur-sm"></div>
+                  )}
+                </button>
+              )
+            })}
           </nav>
 
           {/* User Info and Actions */}
@@ -212,7 +239,7 @@ export default function Header() {
                 <div className="relative">
                   <div className="w-10 h-10 bg-gradient-to-br from-gray-300 to-gray-400 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
                     <span className="text-gray-700 font-bold text-lg">
-                      {session.user.name?.charAt(0)?.toUpperCase() || '👤'}
+                      {session.user.name?.charAt(0)?.toUpperCase() || <User className="w-5 h-5" />}
                     </span>
                   </div>
                   <div className="absolute -bottom-1 -right-1">
@@ -227,14 +254,13 @@ export default function Header() {
                 </div>
 
                 {/* Role Badge */}
-                <span className={`hidden sm:inline-flex px-3 py-1.5 rounded-lg text-xs font-bold shadow-md ${getRoleGradient()}`}>
-                  {getRoleDisplay()}
+                <span className={`hidden sm:inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-bold shadow-md ${getRoleGradient()}`}>
+                  {getRoleIcon()}
+                  <span>{getRoleDisplay()}</span>
                 </span>
 
                 {/* Dropdown Arrow */}
-                <svg className="w-4 h-4 text-gray-400 transform group-hover:rotate-180 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
+                <ChevronDown className="w-4 h-4 text-gray-400 transform group-hover:rotate-180 transition-transform duration-200" />
               </button>
 
               {/* User Dropdown Menu */}
@@ -243,8 +269,9 @@ export default function Header() {
                   <div className="px-4 py-3 border-b border-gray-100">
                     <p className="text-sm font-semibold text-gray-900">{session.user.name}</p>
                     <p className="text-xs text-gray-500">{session.user.email}</p>
-                    <span className={`inline-flex mt-2 px-2 py-1 rounded-lg text-xs font-bold ${getRoleGradient()}`}>
-                      {getRoleDisplay()}
+                    <span className={`inline-flex items-center space-x-1 mt-2 px-2 py-1 rounded-lg text-xs font-bold ${getRoleGradient()}`}>
+                      {getRoleIcon()}
+                      <span>{getRoleDisplay()}</span>
                     </span>
                   </div>
                   <div className="py-2">
@@ -255,7 +282,7 @@ export default function Header() {
                       }}
                       className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
                     >
-                      <span>👤</span>
+                      <Settings className="w-4 h-4" />
                       <span>Profile Settings</span>
                     </button>
                     <button
@@ -265,7 +292,7 @@ export default function Header() {
                       }}
                       className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
                     >
-                      <span>🚪</span>
+                      <LogOut className="w-4 h-4" />
                       <span>Sign Out</span>
                     </button>
                   </div>
@@ -278,13 +305,11 @@ export default function Header() {
               onClick={() => setShowMobileMenu(!showMobileMenu)}
               className="lg:hidden p-2 text-gray-600 hover:text-gray-900 rounded-xl hover:bg-gray-50 transition-colors"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                {showMobileMenu ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                )}
-              </svg>
+              {showMobileMenu ? (
+                <X className="w-6 h-6" />
+              ) : (
+                <Menu className="w-6 h-6" />
+              )}
             </button>
           </div>
         </div>
@@ -293,23 +318,26 @@ export default function Header() {
         {showMobileMenu && (
           <div className="lg:hidden border-t border-gray-200 py-4 bg-gray-50/80 backdrop-blur-sm rounded-b-xl">
             <div className="flex flex-col space-y-2">
-              {navigationItems.map((item) => (
-                <button
-                  key={item.name}
-                  onClick={() => {
-                    router.push(item.href)
-                    setShowMobileMenu(false)
-                  }}
-                  className={`px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all duration-200 mx-2 ${
-                    item.active
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-white'
-                  }`}
-                >
-                  <span className="text-base mr-3">{item.icon}</span>
-                  {item.name}
-                </button>
-              ))}
+              {navigationItems.map((item) => {
+                const IconComponent = item.icon
+                return (
+                  <button
+                    key={item.name}
+                    onClick={() => {
+                      router.push(item.href)
+                      setShowMobileMenu(false)
+                    }}
+                    className={`px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all duration-200 mx-2 flex items-center space-x-3 ${
+                      item.active
+                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-white'
+                    }`}
+                  >
+                    <IconComponent className="w-5 h-5" />
+                    <span>{item.name}</span>
+                  </button>
+                )
+              })}
             </div>
             
             {/* Mobile User Info */}
@@ -317,14 +345,15 @@ export default function Header() {
               <div className="flex items-center space-x-3 px-4 py-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-gray-300 to-gray-400 rounded-xl flex items-center justify-center">
                   <span className="text-gray-700 font-bold">
-                    {session.user.name?.charAt(0)?.toUpperCase() || '👤'}
+                    {session.user.name?.charAt(0)?.toUpperCase() || <User className="w-5 h-5" />}
                   </span>
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-gray-900">{session.user.name}</p>
                   <p className="text-xs text-gray-500">{session.user.email}</p>
-                  <span className={`inline-flex mt-1 px-2 py-1 rounded-lg text-xs font-bold ${getRoleGradient()}`}>
-                    {getRoleDisplay()}
+                  <span className={`inline-flex items-center space-x-1 mt-1 px-2 py-1 rounded-lg text-xs font-bold ${getRoleGradient()}`}>
+                    {getRoleIcon()}
+                    <span>{getRoleDisplay()}</span>
                   </span>
                 </div>
               </div>
@@ -332,7 +361,7 @@ export default function Header() {
                 onClick={() => signOut()}
                 className="w-full px-4 py-3 text-left text-sm font-semibold text-red-600 hover:bg-red-50 rounded-xl mx-2 mt-2 flex items-center space-x-2"
               >
-                <span>🚪</span>
+                <LogOut className="w-4 h-4" />
                 <span>Sign Out</span>
               </button>
             </div>
