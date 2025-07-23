@@ -229,6 +229,18 @@ export default function ClientsPage() {
           </div>
         )}
 
+        {/* Add Client Button */}
+        {session?.user?.role === 'security_supervisor' && (
+          <div className="flex justify-end mb-4">
+            <button
+              onClick={() => setShowForm(true)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+            >
+              + Add Client
+            </button>
+          </div>
+        )}
+
         {/* Clients List */}
         <div className="bg-white rounded-lg shadow">
           <div className="px-6 py-4 border-b border-gray-200">
