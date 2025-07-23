@@ -1,9 +1,12 @@
-import { Inter } from 'next/font/google'
+import { Poppins } from 'next/font/google'
 import './globals.css'
 import AuthSessionProvider from '@/components/SessionProvider'
 import Header from '@/components/Header'
 
-const inter = Inter({ subsets: ['latin'] })
+const poppins = Poppins({ 
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700', '800']
+})
 
 export const metadata = {
   title: 'IRPA - Incident Reporting App',
@@ -13,7 +16,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={poppins.className}>
         <AuthSessionProvider>
           <div className="min-h-screen bg-gray-50">
             <Header />
