@@ -402,24 +402,22 @@ export default function EditIncidentPage({ params }) {
             )}
           </div>
 
-          {/* Priority Selection (for communications) */}
-          {isCommunication && (
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Priority Level
-              </label>
-              <select
-                name="priority"
-                value={formData.priority}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="normal">📘 Normal</option>
-                <option value="urgent">📙 Urgent</option>
-                <option value="critical">📕 Critical</option>
-              </select>
-            </div>
-          )}
+          {/* Priority Selection */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Priority Level (Optional)
+            </label>
+            <select
+              name="priority"
+              value={formData.priority}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="normal">📘 Normal</option>
+              <option value="urgent">📙 Urgent</option>
+              <option value="critical">📕 Critical</option>
+            </select>
+          </div>
 
           {/* Date & Time */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">

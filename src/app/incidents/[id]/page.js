@@ -144,7 +144,7 @@ export default function ViewIncidentPage({ params }) {
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200'
     }
-  }
+}
 
   const isMessage = incident?.messageType === 'communication' || incident?.incidentType === 'Communication/Message'
 
@@ -271,6 +271,12 @@ export default function ViewIncidentPage({ params }) {
                 {isMessage ? '💬' : '🚨'} {incident.incidentType}
               </p>
             </div>
+            <div>
+            <label className="block text-sm font-medium text-gray-700">Priority</label>
+            <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
+              {incident.priority ? incident.priority.charAt(0).toUpperCase() + incident.priority.slice(1) : 'Normal'}
+            </p>
+          </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Date & Time</label>
               <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
