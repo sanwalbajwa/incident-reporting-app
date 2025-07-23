@@ -89,18 +89,18 @@ export default function Header() {
     } else if (session.user.role === 'security_supervisor') {
       // Supervisor-specific navigation
       items.push(
-        {
-          name: 'All Reports',
-          href: '/supervisor/reports',
-          icon: '📊',
-          active: pathname.startsWith('/supervisor/reports')
-        },
-        {
-          name: 'Guard Management',
-          href: '/supervisor/guards',
-          icon: '👥',
-          active: pathname.startsWith('/supervisor/guards')
-        },
+        // {
+        //   name: 'All Reports',
+        //   href: '/supervisor/reports',
+        //   icon: '📊',
+        //   active: pathname.startsWith('/supervisor/reports')
+        // },
+        // {
+        //   name: 'Guard Management',
+        //   href: '/supervisor/guards',
+        //   icon: '👥',
+        //   active: pathname.startsWith('/supervisor/guards')
+        // },
         {
           name: 'Add Client',
           href: '/clients',
