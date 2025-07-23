@@ -2,13 +2,35 @@
 import { useSession } from 'next-auth/react'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { 
+  ArrowLeft,
+  AlertTriangle,
+  MessageCircle,
+  User,
+  Building2,
+  MapPin,
+  Calendar,
+  Clock,
+  FileText,
+  Paperclip,
+  Send,
+  Eye,
+  CheckCircle,
+  Shield,
+  Mail,
+  Phone,
+  Hash,
+  Image,
+  Download,
+  X
+} from 'lucide-react'
 
 export default function ViewIncidentPage({ params }) {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [incident, setIncident] = useState(null)
   const [client, setClient] = useState(null)
-  const [recipient, setRecipient] = useState(null) // Add recipient state
+  const [recipient, setRecipient] = useState(null)
   const [loading, setLoading] = useState(true)
   const [selectedImage, setSelectedImage] = useState(null)
 
@@ -123,37 +145,75 @@ export default function ViewIncidentPage({ params }) {
   const getStatusColor = (status) => {
     switch (status) {
       case 'submitted':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+        return 'bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-800 border-yellow-200'
       case 'reviewed':
-        return 'bg-blue-100 text-blue-800 border-blue-200'
+        return 'bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border-blue-200'
       case 'resolved':
-        return 'bg-green-100 text-green-800 border-green-200'
+        return 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border-green-200'
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200'
+        return 'bg-gradient-to-r from-gray-100 to-slate-100 text-gray-800 border-gray-200'
+    }
+  }
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'submitted':
+        return <Clock className="w-4 h-4" />
+      case 'reviewed':
+        return <Eye className="w-4 h-4" />
+      case 'resolved':
+        return <CheckCircle className="w-4 h-4" />
+      default:
+        return <AlertTriangle className="w-4 h-4" />
     }
   }
 
   const getPriorityColor = (priority) => {
     switch (priority) {
       case 'critical':
-        return 'bg-red-100 text-red-800 border-red-200'
+        return 'bg-gradient-to-r from-red-100 to-red-200 text-red-800 border-red-200'
       case 'urgent':
-        return 'bg-orange-100 text-orange-800 border-orange-200'
+        return 'bg-gradient-to-r from-orange-100 to-orange-200 text-orange-800 border-orange-200'
       case 'normal':
-        return 'bg-blue-100 text-blue-800 border-blue-200'
+        return 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border-blue-200'
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200'
+        return 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 border-gray-200'
     }
-}
+  }
+
+  const getPriorityIcon = (priority) => {
+    switch (priority) {
+      case 'critical':
+        return <AlertTriangle className="w-4 h-4" />
+      case 'urgent':
+        return <Clock className="w-4 h-4" />
+      default:
+        return <FileText className="w-4 h-4" />
+    }
+  }
+
+  const getBackUrl = () => {
+    if (session?.user?.role === 'security_supervisor') {
+      return '/supervisor-dashboard'
+    }
+    return '/incidents'
+  }
+
+  const getBackLabel = () => {
+    if (session?.user?.role === 'security_supervisor') {
+      return 'Supervisor Dashboard'
+    }
+    return 'My Reports'
+  }
 
   const isMessage = incident?.messageType === 'communication' || incident?.incidentType === 'Communication/Message'
 
   if (status === 'loading' || loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading incident...</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+        <div className="text-center bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/20">
+          <div className="animate-spin rounded-full h-12 w-12 border-3 border-blue-600 border-t-transparent mx-auto"></div>
+          <p className="mt-4 text-gray-600 font-medium">Loading incident...</p>
         </div>
       </div>
     )
@@ -163,21 +223,16 @@ export default function ViewIncidentPage({ params }) {
 
   if (!incident) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+        <div className="text-center bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/20">
+          <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Incident Not Found</h1>
           <button
-            onClick={() => {
-              // If user is supervisor, go back to supervisor dashboard
-              if (session.user.role === 'security_supervisor') {
-                router.push('/supervisor-dashboard')
-              } else {
-                router.push('/incidents')
-              }
-            }}
-            className="text-blue-600 hover:text-blue-700"
+            onClick={() => router.push(getBackUrl())}
+            className="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-2 mx-auto"
           >
-            ← Back to {session.user.role === 'security_supervisor' ? 'Dashboard' : 'Incidents'}
+            <ArrowLeft className="w-4 h-4" />
+            Back to {getBackLabel()}
           </button>
         </div>
       </div>
@@ -185,43 +240,68 @@ export default function ViewIncidentPage({ params }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        <button
+              onClick={() => router.push(getBackUrl())}
+              className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm text-gray-600 rounded-xl hover:bg-white hover:text-gray-900 transition-all duration-200 border border-white/20 shadow-sm"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">{getBackLabel()}</span>
+        </button>
+        {/* Header with Back Button */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                {isMessage ? <MessageCircle className="w-8 h-8 text-blue-600" /> : <AlertTriangle className="w-8 h-8 text-red-600" />}
+                {isMessage ? 'Message Details' : 'Incident Report'}
+              </h1>
+              <p className="text-gray-600 mt-1">{incident.incidentId}</p>
+            </div>
+          </div>
+        </div>
+
         {/* Status and Priority Badges */}
-        <div className="mb-6 flex space-x-3">
-          <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full border ${getStatusColor(incident.status)}`}>
+        <div className="flex flex-wrap gap-3">
+          <span className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-xl border ${getStatusColor(incident.status)}`}>
+            {getStatusIcon(incident.status)}
             Status: {incident.status.charAt(0).toUpperCase() + incident.status.slice(1)}
           </span>
           {incident.priority && (
-            <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full border ${getPriorityColor(incident.priority)}`}>
+            <span className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-xl border ${getPriorityColor(incident.priority)}`}>
+              {getPriorityIcon(incident.priority)}
               Priority: {incident.priority.charAt(0).toUpperCase() + incident.priority.slice(1)}
             </span>
           )}
           {isMessage && (
-            <span className="inline-flex px-3 py-1 text-sm font-semibold rounded-full border bg-purple-100 text-purple-800 border-purple-200">
-              💬 Message
+            <span className="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-xl border bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 border-purple-200">
+              <MessageCircle className="w-4 h-4" />
+              Message
             </span>
           )}
         </div>
 
-        {/* Recipient Information - NEW SECTION */}
+        {/* Recipient Information */}
         {recipient && (
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">
-              📤 {isMessage ? 'Message Sent To' : 'Report Sent To'}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Send className="w-6 h-6 text-purple-600" />
+              {isMessage ? 'Message Sent To' : 'Report Sent To'}
             </h2>
-            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                  <span className="text-purple-600 font-medium text-lg">
-                    {recipient.name?.charAt(0) || '👤'}
-                  </span>
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-xl p-4">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-purple-200 rounded-xl flex items-center justify-center">
+                  <User className="w-6 h-6 text-purple-700" />
                 </div>
                 <div>
-                  <p className="font-medium text-purple-900">{recipient.name}</p>
+                  <p className="font-bold text-purple-900">{recipient.name}</p>
                   <p className="text-sm text-purple-700">{recipient.role}</p>
                   {recipient.email && !recipient.isRoleFallback && (
-                    <p className="text-sm text-purple-600">{recipient.email}</p>
+                    <p className="text-sm text-purple-600 flex items-center gap-1 mt-1">
+                      <Mail className="w-3 h-3" />
+                      {recipient.email}
+                    </p>
                   )}
                   {recipient.isRoleFallback && (
                     <p className="text-xs text-purple-500 italic">Role-based recipient</p>
@@ -233,39 +313,56 @@ export default function ViewIncidentPage({ params }) {
         )}
 
         {/* Basic Information */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Basic Information</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                {isMessage ? 'Message ID' : 'Incident ID'}
-              </label>
-              <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">{incident.incidentId}</p>
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+            <FileText className="w-6 h-6 text-blue-600" />
+            Basic Information
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Hash className="w-4 h-4" />
+                <span className="font-medium">{isMessage ? 'Message ID' : 'Incident ID'}</span>
+              </div>
+              <p className="text-lg font-bold text-gray-900 bg-gray-50 p-3 rounded-xl">{incident.incidentId}</p>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Type</label>
-              <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
-                {isMessage ? '💬' : '🚨'} {incident.incidentType}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <AlertTriangle className="w-4 h-4" />
+                <span className="font-medium">Type</span>
+              </div>
+              <p className="text-lg font-bold text-gray-900 bg-gray-50 p-3 rounded-xl flex items-center gap-2">
+                {isMessage ? <MessageCircle className="w-5 h-5 text-blue-600" /> : <AlertTriangle className="w-5 h-5 text-red-600" />}
+                {incident.incidentType}
               </p>
             </div>
-            <div>
-            <label className="block text-sm font-medium text-gray-700">Priority</label>
-            <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
-              {incident.priority ? incident.priority.charAt(0).toUpperCase() + incident.priority.slice(1) : 'Normal'}
-            </p>
-          </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Date & Time</label>
-              <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Clock className="w-4 h-4" />
+                <span className="font-medium">Priority</span>
+              </div>
+              <p className="text-lg font-bold text-gray-900 bg-gray-50 p-3 rounded-xl">
+                {incident.priority ? incident.priority.charAt(0).toUpperCase() + incident.priority.slice(1) : 'Normal'}
+              </p>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Calendar className="w-4 h-4" />
+                <span className="font-medium">Date & Time</span>
+              </div>
+              <p className="text-lg font-bold text-gray-900 bg-gray-50 p-3 rounded-xl">
                 {formatDate(incident.incidentDateTime || incident.createdAt)}
               </p>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Location</label>
-              <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
+            <div className="md:col-span-2 space-y-3">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <MapPin className="w-4 h-4" />
+                <span className="font-medium">Location</span>
+              </div>
+              <p className="text-lg font-bold text-gray-900 bg-gray-50 p-3 rounded-xl">
                 {incident.location}
                 {incident.withinProperty !== undefined && (
-                  <span className="text-xs text-gray-500 ml-2">
+                  <span className="text-sm text-gray-500 ml-2 font-normal">
                     ({incident.withinProperty ? 'Within property' : 'Outside property'})
                   </span>
                 )}
@@ -276,62 +373,74 @@ export default function ViewIncidentPage({ params }) {
 
         {/* Client Information */}
         {client && (
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Property/Client Information</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Property Name</label>
-                <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">{client.name}</p>
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <Building2 className="w-6 h-6 text-green-600" />
+              Property/Client Information
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Building2 className="w-4 h-4" />
+                  <span className="font-medium">Property Name</span>
+                </div>
+                <p className="text-lg font-bold text-gray-900 bg-gray-50 p-3 rounded-xl">{client.name}</p>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Address</label>
-                <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">{client.location}</p>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <MapPin className="w-4 h-4" />
+                  <span className="font-medium">Address</span>
+                </div>
+                <p className="text-lg font-bold text-gray-900 bg-gray-50 p-3 rounded-xl">{client.location}</p>
               </div>
             </div>
           </div>
         )}
 
         {/* Content */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+            <FileText className="w-6 h-6 text-blue-600" />
             {isMessage ? 'Message Content' : 'Incident Description'}
           </h2>
-          <div className="bg-gray-50 p-4 rounded">
-            <p className="text-sm text-gray-900 whitespace-pre-wrap">{incident.description}</p>
+          <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
+            <p className="text-gray-900 whitespace-pre-wrap leading-relaxed">{incident.description}</p>
           </div>
         </div>
 
         {/* Attachments */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Attachments</h2>
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+            <Paperclip className="w-6 h-6 text-blue-600" />
+            Attachments
+          </h2>
           {incident.attachments && incident.attachments.length > 0 ? (
             <div>
-              <p className="text-sm text-gray-600 mb-3">Attached files ({incident.attachments.length}):</p>
+              <p className="text-sm text-gray-600 mb-4">Attached files ({incident.attachments.length}):</p>
               <div className="space-y-4">
                 {incident.attachments.map((file, index) => (
-                  <div key={index} className="bg-gray-50 p-3 rounded border">
+                  <div key={index} className="bg-gray-50 p-4 rounded-xl border border-gray-200">
                     <div className="flex items-start space-x-4">
                       <div className="flex-shrink-0">
                         {file.fileType?.startsWith('image/') ? (
                           <img
                             src={file.filePath}
                             alt={file.originalName}
-                            className="w-20 h-20 object-cover rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
+                            className="w-20 h-20 object-cover rounded-xl border cursor-pointer hover:opacity-80 transition-opacity"
                             onClick={() => setSelectedImage(file)}
                           />
                         ) : (
-                          <div className="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center">
-                            <svg className="w-8 h-8 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
-                            </svg>
+                          <div className="w-20 h-20 bg-gray-200 rounded-xl flex items-center justify-center">
+                            <FileText className="w-8 h-8 text-gray-500" />
                           </div>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
+                        <p className="text-sm font-bold text-gray-900 truncate">
                           {file.originalName}
                         </p>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-gray-500 mt-1 flex items-center gap-2">
+                          <FileText className="w-3 h-3" />
                           {file.fileType} • {(file.fileSize / 1024).toFixed(1)} KB
                         </p>
                       </div>
@@ -340,9 +449,18 @@ export default function ViewIncidentPage({ params }) {
                           href={file.filePath}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                          className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
                         >
+                          <Eye className="w-4 h-4" />
                           View
+                        </a>
+                        <a
+                          href={file.filePath}
+                          download={file.originalName}
+                          className="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+                        >
+                          <Download className="w-4 h-4" />
+                          Download
                         </a>
                       </div>
                     </div>
@@ -351,44 +469,57 @@ export default function ViewIncidentPage({ params }) {
               </div>
             </div>
           ) : (
-            <div className="text-sm text-gray-500 bg-gray-50 p-4 rounded">
-              No attachments uploaded
+            <div className="text-center py-8">
+              <Paperclip className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">No attachments uploaded</p>
             </div>
           )}
         </div>
 
         {/* Guard Information */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+            <Shield className="w-6 h-6 text-blue-600" />
             {isMessage ? 'Message From' : 'Reporting Guard'}
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Guard Name</label>
-              <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">{incident.guardName}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <User className="w-4 h-4" />
+                <span className="font-medium">Guard Name</span>
+              </div>
+              <p className="text-lg font-bold text-gray-900 bg-gray-50 p-3 rounded-xl">{incident.guardName}</p>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Guard Email</label>
-              <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">{incident.guardEmail}</p>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Mail className="w-4 h-4" />
+                <span className="font-medium">Guard Email</span>
+              </div>
+              <p className="text-lg font-bold text-gray-900 bg-gray-50 p-3 rounded-xl">{incident.guardEmail}</p>
             </div>
           </div>
         </div>
 
         {/* Timestamps */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+            <Clock className="w-6 h-6 text-blue-600" />
             {isMessage ? 'Message Information' : 'Report Information'}
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                {isMessage ? 'Message Sent' : 'Report Created'}
-              </label>
-              <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">{formatDate(incident.createdAt)}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Calendar className="w-4 h-4" />
+                <span className="font-medium">{isMessage ? 'Message Sent' : 'Report Created'}</span>
+              </div>
+              <p className="text-lg font-bold text-gray-900 bg-gray-50 p-3 rounded-xl">{formatDate(incident.createdAt)}</p>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Last Updated</label>
-              <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">{formatDate(incident.updatedAt)}</p>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Clock className="w-4 h-4" />
+                <span className="font-medium">Last Updated</span>
+              </div>
+              <p className="text-lg font-bold text-gray-900 bg-gray-50 p-3 rounded-xl">{formatDate(incident.updatedAt)}</p>
             </div>
           </div>
         </div>
@@ -397,24 +528,25 @@ export default function ViewIncidentPage({ params }) {
       {/* Image Modal */}
       {selectedImage && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           onClick={() => setSelectedImage(null)}
         >
           <div className="relative max-w-4xl max-h-full">
             <img
               src={selectedImage.filePath}
               alt={selectedImage.originalName}
-              className="max-w-full max-h-full object-contain rounded-lg"
+              className="max-w-full max-h-full object-contain rounded-xl"
               onClick={(e) => e.stopPropagation()}
             />
             <button
               onClick={() => setSelectedImage(null)}
-              className="absolute top-4 right-4 bg-black bg-opacity-50 text-white rounded-full p-2 hover:bg-opacity-75 transition-all"
+              className="absolute top-4 right-4 bg-black/50 text-white rounded-xl p-3 hover:bg-black/75 transition-all"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <X className="w-6 h-6" />
             </button>
+            <div className="absolute bottom-4 left-4 bg-black/50 text-white px-4 py-2 rounded-xl">
+              <p className="font-medium">{selectedImage.originalName}</p>
+            </div>
           </div>
         </div>
       )}
