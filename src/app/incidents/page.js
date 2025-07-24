@@ -420,7 +420,7 @@ export default function IncidentsPage() {
               <h3 className="text-xl font-bold text-gray-900 mb-4">No incidents found</h3>
               <p className="text-gray-600 mb-8 text-lg">
                 {filter === 'all' 
-                  ? "You haven't reported any incidents yet."
+                  ? "You haven&apos;t reported any incidents yet."
                   : `No incidents found for the selected time period.`
                 }
               </p>

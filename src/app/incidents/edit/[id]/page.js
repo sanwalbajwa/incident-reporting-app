@@ -349,7 +349,7 @@ export default function EditIncidentPage({ params }) {
                 Editing {isCommunication ? 'Message' : 'Incident Report'}
               </h3>
               <p className="text-yellow-700">
-                You can only edit {isCommunication ? 'messages' : 'incidents'} with "submitted" status. Once reviewed, {isCommunication ? 'messages' : 'incidents'} cannot be modified.
+                You can only edit {isCommunication ? 'messages' : 'incidents'} with &quot;submitted&quot; status. Once reviewed, {isCommunication ? 'messages' : 'incidents'} cannot be modified.
               </p>
             </div>
           </div>

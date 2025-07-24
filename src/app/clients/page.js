@@ -495,7 +495,7 @@ export default function ClientsPage() {
     
                  {searchTerm && (
                     <span className="text-sm font-normal text-gray-600">
-                      - Filtered by "{searchTerm}"
+                      - Filtered by &quot;{searchTerm}&quot;
                     </span>
                 
                  )}
