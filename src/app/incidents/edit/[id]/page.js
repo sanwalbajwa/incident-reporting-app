@@ -2,6 +2,26 @@
 import { useSession } from 'next-auth/react'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { 
+  ArrowLeft, 
+  Save, 
+  AlertTriangle, 
+  MessageCircle, 
+  User, 
+  Building2, 
+  Calendar, 
+  Clock, 
+  MapPin, 
+  FileText, 
+  Upload, 
+  X,
+  CheckCircle,
+  AlertCircle,
+  Send,
+  Trash2,
+  Edit,
+  Eye
+} from 'lucide-react'
 
 // Simplified incident types as per document
 const INCIDENT_TYPES = [
@@ -48,7 +68,7 @@ export default function EditIncidentPage({ params }) {
       loadRecipients()
       loadIncident()
     }
-  }, [session, status, router, params.id])
+  }, [session, status, router, params])
 
   const loadClients = async () => {
     try {
@@ -78,7 +98,9 @@ export default function EditIncidentPage({ params }) {
 
   const loadIncident = async () => {
     try {
-      const response = await fetch(`/api/incidents/${params.id}`)
+      // Await params for Next.js 15
+      const resolvedParams = await params
+      const response = await fetch(`/api/incidents/${resolvedParams.id}`)
       const data = await response.json()
       
       if (response.ok) {
@@ -88,7 +110,7 @@ export default function EditIncidentPage({ params }) {
         // Check if incident can be edited
         if (incident.status !== 'submitted') {
           alert('This incident cannot be edited because it has already been reviewed.')
-          router.push(`/incidents/${params.id}`)
+          router.push(`/incidents/${resolvedParams.id}`)
           return
         }
         
@@ -130,6 +152,8 @@ export default function EditIncidentPage({ params }) {
     setLoading(true)
 
     try {
+      // Await params for Next.js 15
+      const resolvedParams = await params
       const isCommunication = formData.incidentType === 'Communication/Message'
       
       const incidentData = {
@@ -148,7 +172,7 @@ export default function EditIncidentPage({ params }) {
 
       console.log('Updating incident data:', incidentData)
 
-      const response = await fetch(`/api/incidents/${params.id}`, {
+      const response = await fetch(`/api/incidents/${resolvedParams.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -162,7 +186,7 @@ export default function EditIncidentPage({ params }) {
       if (response.ok) {
         // Handle new file uploads if any
         if (formData.newAttachments && formData.newAttachments.length > 0) {
-          await uploadNewFiles()
+          await uploadNewFiles(resolvedParams.id)
         }
         
         const isMessage = formData.incidentType === 'Communication/Message'
@@ -171,7 +195,7 @@ export default function EditIncidentPage({ params }) {
         } else {
           alert(`Incident updated successfully!\nIncident ID: ${originalIncident.incidentId}`)
         }
-        router.push(`/incidents/${params.id}`)
+        router.push(`/incidents/${resolvedParams.id}`)
       } else {
         alert(`Error: ${data.error || 'Failed to update'}`)
         console.error('Server error:', data)
@@ -183,10 +207,10 @@ export default function EditIncidentPage({ params }) {
     setLoading(false)
   }
 
-  const uploadNewFiles = async () => {
+  const uploadNewFiles = async (incidentId) => {
     try {
       const formDataToSend = new FormData()
-      formDataToSend.append('incidentId', params.id)
+      formDataToSend.append('incidentId', incidentId)
       
       for (let i = 0; i < formData.newAttachments.length; i++) {
         formDataToSend.append('files', formData.newAttachments[i])
@@ -224,7 +248,9 @@ export default function EditIncidentPage({ params }) {
   const removeAttachment = async (attachmentIndex) => {
     if (confirm('Are you sure you want to remove this attachment?')) {
       try {
-        const response = await fetch(`/api/incidents/${params.id}/attachments`, {
+        // Await params for Next.js 15
+        const resolvedParams = await params
+        const response = await fetch(`/api/incidents/${resolvedParams.id}/attachments`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json'
@@ -245,15 +271,36 @@ export default function EditIncidentPage({ params }) {
     }
   }
 
+  const removeNewFile = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      newAttachments: prev.newAttachments?.filter((_, i) => i !== index) || []
+    }))
+  }
+
+  const getBackUrl = () => {
+    if (session?.user?.role === 'security_supervisor') {
+      return '/supervisor-dashboard'
+    }
+    return '/incidents'
+  }
+
+  const getBackLabel = () => {
+    if (session?.user?.role === 'security_supervisor') {
+      return 'Supervisor Dashboard'
+    }
+    return 'My Reports'
+  }
+
   // Check if this is a communication
   const isCommunication = formData.incidentType === 'Communication/Message'
 
   if (status === 'loading' || pageLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading incident...</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+        <div className="text-center bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/20">
+          <div className="animate-spin rounded-full h-12 w-12 border-3 border-blue-600 border-t-transparent mx-auto"></div>
+          <p className="mt-4 text-gray-600 font-medium">Loading incident...</p>
         </div>
       </div>
     )
@@ -262,51 +309,86 @@ export default function EditIncidentPage({ params }) {
   if (!session || !originalIncident) return null
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         
+        {/* Header with Back Button */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => router.push(getBackUrl())}
+              className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm text-gray-600 rounded-xl hover:bg-white hover:text-gray-900 transition-all duration-200 border border-white/20 shadow-sm"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">{getBackLabel()}</span>
+            </button>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                <Edit className="w-8 h-8 text-blue-600" />
+                {isCommunication ? 'Edit Message' : 'Edit Incident Report'}
+              </h1>
+              <p className="text-gray-600 mt-1">{originalIncident.incidentId}</p>
+            </div>
+          </div>
+          
+          <button
+            onClick={() => router.push(`/incidents/${originalIncident._id}`)}
+            className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-xl font-medium transition-colors"
+          >
+            <Eye className="w-4 h-4" />
+            <span className="hidden sm:inline">View</span>
+          </button>
+        </div>
+
         {/* Warning */}
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-          <div className="flex">
-            <svg className="flex-shrink-0 h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-            </svg>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-yellow-800">
+        <div className="bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200 rounded-2xl p-6">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="flex-shrink-0 h-6 w-6 text-yellow-600 mt-0.5" />
+            <div>
+              <h3 className="text-lg font-bold text-yellow-800 mb-2">
                 Editing {isCommunication ? 'Message' : 'Incident Report'}
               </h3>
-              <p className="mt-1 text-sm text-yellow-700">
+              <p className="text-yellow-700">
                 You can only edit {isCommunication ? 'messages' : 'incidents'} with "submitted" status. Once reviewed, {isCommunication ? 'messages' : 'incidents'} cannot be modified.
               </p>
             </div>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6">
+        <form onSubmit={handleSubmit} className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8 space-y-8">
           
           {/* Guard Information - Auto-filled (Read-only) */}
-          <div className="mb-6 bg-blue-50 p-4 rounded-lg">
-            <h3 className="text-sm font-medium text-blue-800 mb-2">
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-2xl border border-blue-200">
+            <h3 className="text-lg font-bold text-blue-800 mb-4 flex items-center gap-2">
+              <User className="w-5 h-5" />
               {isCommunication ? 'Message From (Auto-filled)' : 'Reporting Guard (Auto-filled)'}
             </h3>
-            <div className="text-sm text-blue-700">
-              <p><strong>Name:</strong> {originalIncident.guardName}</p>
-              <p><strong>Email:</strong> {originalIncident.guardEmail}</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-blue-700">
+              <div>
+                <span className="font-medium">Name:</span> {originalIncident.guardName}
+              </div>
+              <div>
+                <span className="font-medium">Email:</span> {originalIncident.guardEmail}
+              </div>
             </div>
           </div>
 
           {/* STEP 1: Recipient Selection */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-bold mr-2">STEP 1</span>
-              Select Recipient *
+          <div className="space-y-3">
+            <label className="block text-lg font-bold text-gray-900 flex items-center gap-2">
+              <div className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-bold">
+                STEP 1
+              </div>
+              <Send className="w-5 h-5 text-blue-600" />
+              Select Recipient
+              <span className="text-red-500">*</span>
             </label>
             <select
               name="recipientId"
               value={formData.recipientId}
               onChange={handleChange}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 text-gray-900"
             >
               <option value="">-- Select Recipient --</option>
               {recipients.map(recipient => (
@@ -323,23 +405,28 @@ export default function EditIncidentPage({ params }) {
                 </>
               )}
             </select>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-sm text-gray-600 flex items-center gap-1">
+              <AlertCircle className="w-4 h-4" />
               Choose who should receive this {isCommunication ? 'message' : 'report'}
             </p>
           </div>
 
           {/* STEP 2: Client Selection */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-bold mr-2">STEP 2</span>
-              Select Client from Client List *
+          <div className="space-y-3">
+            <label className="block text-lg font-bold text-gray-900 flex items-center gap-2">
+              <div className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-bold">
+                STEP 2
+              </div>
+              <Building2 className="w-5 h-5 text-blue-600" />
+              Select Client from Client List
+              <span className="text-red-500">*</span>
             </label>
             <select
               name="clientId"
               value={formData.clientId}
               onChange={handleChange}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 text-gray-900"
             >
               <option value="">-- Select a Client/Property --</option>
               {clients.map(client => (
@@ -351,16 +438,18 @@ export default function EditIncidentPage({ params }) {
           </div>
 
           {/* Message Type Selection */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Message Type *
+          <div className="space-y-3">
+            <label className="block text-lg font-bold text-gray-900 flex items-center gap-2">
+              <MessageCircle className="w-5 h-5 text-blue-600" />
+              Message Type
+              <span className="text-red-500">*</span>
             </label>
             <select
               name="incidentType"
               value={formData.incidentType}
               onChange={handleChange}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 text-gray-900"
             >
               <option value="">-- Select Type --</option>
               <option value="Communication/Message">💬 Communication/Message</option>
@@ -379,22 +468,22 @@ export default function EditIncidentPage({ params }) {
                   onChange={handleChange}
                   required
                   placeholder="Please specify the incident type"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
                 />
               </div>
             )}
           </div>
 
           {/* Priority Selection */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="space-y-3">
+            <label className="block text-lg font-bold text-gray-900">
               Priority Level (Optional)
             </label>
             <select
               name="priority"
               value={formData.priority}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 text-gray-900"
             >
               <option value="normal">📘 Normal</option>
               <option value="urgent">📙 Urgent</option>
@@ -403,10 +492,12 @@ export default function EditIncidentPage({ params }) {
           </div>
 
           {/* Date & Time */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {isCommunication ? 'Message Date' : 'Incident Date'} *
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-3">
+              <label className="block text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-blue-600" />
+                {isCommunication ? 'Message Date' : 'Incident Date'}
+                <span className="text-red-500">*</span>
               </label>
               <input
                 type="date"
@@ -414,13 +505,15 @@ export default function EditIncidentPage({ params }) {
                 value={formData.incidentDate}
                 onChange={handleChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {isCommunication ? 'Message Time' : 'Incident Time'} *
+            <div className="space-y-3">
+              <label className="block text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Clock className="w-5 h-5 text-blue-600" />
+                {isCommunication ? 'Message Time' : 'Incident Time'}
+                <span className="text-red-500">*</span>
               </label>
               <input
                 type="time"
@@ -428,40 +521,42 @@ export default function EditIncidentPage({ params }) {
                 value={formData.incidentTime}
                 onChange={handleChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
               />
             </div>
           </div>
 
           {/* Location */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-3">
-              {isCommunication ? 'Related Location (if applicable)' : 'Incident Location'} *
+          <div className="space-y-4">
+            <label className="block text-lg font-bold text-gray-900 flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-blue-600" />
+              {isCommunication ? 'Related Location (if applicable)' : 'Incident Location'}
+              <span className="text-red-500">*</span>
             </label>
             
-            <div className="mb-4">
-              <label className="flex items-center mb-2">
+            <div className="space-y-3">
+              <label className="flex items-center p-4 bg-green-50 rounded-xl border border-green-200 cursor-pointer hover:bg-green-100 transition-colors">
                 <input
                   type="radio"
                   name="locationWithinProperty"
                   checked={formData.locationWithinProperty === true}
                   onChange={() => setFormData(prev => ({...prev, locationWithinProperty: true}))}
-                  className="mr-2"
+                  className="mr-3 w-4 h-4 text-green-600"
                 />
-                <span className="text-sm text-gray-700">
-                  <strong>Within perimeter of property</strong>
+                <span className="font-medium text-green-800">
+                  Within perimeter of property
                 </span>
               </label>
-              <label className="flex items-center">
+              <label className="flex items-center p-4 bg-amber-50 rounded-xl border border-amber-200 cursor-pointer hover:bg-amber-100 transition-colors">
                 <input
                   type="radio"
                   name="locationWithinProperty"
                   checked={formData.locationWithinProperty === false}
                   onChange={() => setFormData(prev => ({...prev, locationWithinProperty: false}))}
-                  className="mr-2"
+                  className="mr-3 w-4 h-4 text-amber-600"
                 />
-                <span className="text-sm text-gray-700">
-                  <strong>Not on property but could impact property or residents</strong>
+                <span className="font-medium text-amber-800">
+                  Not on property but could impact property or residents
                 </span>
               </label>
             </div>
@@ -476,14 +571,16 @@ export default function EditIncidentPage({ params }) {
                 ? "Location related to your message (e.g., Main Lobby, Parking Level 2)" 
                 : "Describe specific location (e.g., Main Lobby, Parking Level 2, East Entrance)"
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
             />
           </div>
 
           {/* Description */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {isCommunication ? 'Message Content' : 'Incident Description'} *
+          <div className="space-y-3">
+            <label className="block text-lg font-bold text-gray-900 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-blue-600" />
+              {isCommunication ? 'Message Content' : 'Incident Description'}
+              <span className="text-red-500">*</span>
             </label>
             <textarea
               name="description"
@@ -495,29 +592,30 @@ export default function EditIncidentPage({ params }) {
                 ? "Enter your message to headquarters..."
                 : "Provide a detailed account of what happened, when, where, who was involved, what actions you took, etc."
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
             />
           </div>
 
           {/* Existing Attachments */}
           {originalIncident.attachments && originalIncident.attachments.length > 0 && (
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="space-y-4">
+              <label className="block text-lg font-bold text-gray-900 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-blue-600" />
                 Current Attachments
               </label>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {originalIncident.attachments.map((file, index) => (
-                  <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded border">
-                    <div className="flex items-center">
+                  <div key={index} className="flex items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
+                    <div className="flex items-center gap-3">
                       {file.fileType?.startsWith('image/') && (
                         <img
                           src={file.filePath}
                           alt={file.originalName}
-                          className="w-10 h-10 object-cover rounded mr-3"
+                          className="w-12 h-12 object-cover rounded-lg"
                         />
                       )}
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{file.originalName}</p>
+                        <p className="text-sm font-bold text-gray-900">{file.originalName}</p>
                         <p className="text-xs text-gray-500">
                           {file.fileType} • {(file.fileSize / 1024).toFixed(1)} KB
                         </p>
@@ -526,9 +624,9 @@ export default function EditIncidentPage({ params }) {
                     <button
                       type="button"
                       onClick={() => removeAttachment(index)}
-                      className="text-red-600 hover:text-red-700 text-sm"
+                      className="text-red-600 hover:text-red-700 transition-colors p-2 rounded-lg hover:bg-red-50"
                     >
-                      Remove
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 ))}
@@ -537,54 +635,76 @@ export default function EditIncidentPage({ params }) {
           )}
 
           {/* Add New Attachments */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="space-y-4">
+            <label className="block text-lg font-bold text-gray-900 flex items-center gap-2">
+              <Upload className="w-5 h-5 text-blue-600" />
               Add New Attachments (Optional)
             </label>
-            <input
-              type="file"
-              onChange={handleFileChange}
-              multiple
-              accept="image/*,video/*,.pdf,.doc,.docx"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              You can select multiple files. Accepted formats: Images, Videos, PDF, Word documents
-            </p>
+            
+            <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 bg-gray-50/50 hover:bg-gray-100/50 transition-colors">
+              <input
+                type="file"
+                onChange={handleFileChange}
+                multiple
+                accept="image/*,video/*,.pdf,.doc,.docx"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+              />
+              <p className="text-sm text-gray-600 mt-2 text-center">
+                You can select multiple files. Accepted formats: Images, Videos, PDF, Word documents
+              </p>
+            </div>
+
             {formData.newAttachments && formData.newAttachments.length > 0 && (
-              <div className="mt-2">
-                <p className="text-sm text-gray-600">New files to upload:</p>
-                <ul className="text-xs text-gray-500">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-gray-700">New files to upload:</p>
+                <div className="space-y-2">
                   {formData.newAttachments.map((file, index) => (
-                    <li key={index}>• {file.name}</li>
+                    <div key={index} className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-xl p-3">
+                      <span className="text-sm text-blue-900 font-medium truncate">{file.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeNewFile(index)}
+                        className="text-red-500 hover:text-red-700 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
                   ))}
-                </ul>
+                </div>
               </div>
             )}
           </div>
 
           {/* Submit Buttons */}
-          <div className="flex space-x-4">
+          <div className="flex space-x-4 pt-6">
             <button
               type="submit"
               disabled={loading}
-              className={`font-medium flex-1 px-6 py-3 rounded-md transition-colors ${
+              className={`font-bold flex-1 px-8 py-4 rounded-xl transition-all duration-200 flex items-center justify-center gap-3 text-lg ${
                 isCommunication 
-                  ? 'bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300' 
-                  : 'bg-green-600 hover:bg-green-700 disabled:bg-green-300'
-              } text-white`}
+                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-blue-300 disabled:to-blue-400' 
+                  : 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 disabled:from-green-300 disabled:to-green-400'
+              } text-white shadow-lg hover:shadow-xl transform hover:scale-105`}
             >
-              {loading 
-                ? (isCommunication ? 'Updating Message...' : 'Updating Incident...') 
-                : (isCommunication ? '💬 Update Message' : '🚨 Update Incident')
-              }
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent"></div>
+                  {isCommunication ? 'Updating Message...' : 'Updating Incident...'}
+                </>
+              ) : (
+                <>
+                  <Save className="w-6 h-6" />
+                  {isCommunication ? 'Update Message' : 'Update Incident'}
+                </>
+              )}
             </button>
             
             <button
               type="button"
-              onClick={() => router.push(`/incidents/${params.id}`)}
-              className="bg-gray-600 text-white px-6 py-3 rounded-md hover:bg-gray-700 font-medium"
+              onClick={() => router.push(`/incidents/${originalIncident._id}`)}
+              className="bg-gray-600 hover:bg-gray-700 text-white px-8 py-4 rounded-xl font-bold transition-colors flex items-center gap-2"
             >
+              <X className="w-5 h-5" />
               Cancel
             </button>
           </div>
