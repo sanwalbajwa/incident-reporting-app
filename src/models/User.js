@@ -7,18 +7,28 @@ export class User {
     const db = client.db('incident-reporting-db')
     const users = db.collection('users')
     
+    // Check if email already exists
+    const existingEmail = await users.findOne({ 
+      email: userData.email.toLowerCase() 
+    })
+    if (existingEmail) {
+      throw new Error('EMAIL_EXISTS')
+    }
+    
     // Check if employeeId already exists (if provided)
-    if (userData.employeeId) {
+    if (userData.employeeId && userData.employeeId.trim() !== '') {
       const existingEmployee = await users.findOne({ 
-        employeeId: userData.employeeId 
+        employeeId: userData.employeeId.trim() 
       })
       if (existingEmployee) {
-        throw new Error('Employee ID already exists')
+        throw new Error('EMPLOYEE_ID_EXISTS')
       }
     }
     
     const newUser = {
       ...userData,
+      email: userData.email.toLowerCase(),
+      employeeId: userData.employeeId ? userData.employeeId.trim() : null,
       role: userData.role || 'guard',
       isActive: true,
       createdAt: new Date(),
@@ -35,6 +45,14 @@ export class User {
     const users = db.collection('users')
     
     return await users.findOne({ email: email.toLowerCase() })
+  }
+  
+  static async findByEmployeeId(employeeId) {
+    const client = await clientPromise
+    const db = client.db('incident-reporting-db')
+    const users = db.collection('users')
+    
+    return await users.findOne({ employeeId: employeeId.trim() })
   }
   
   static async findById(id) {
