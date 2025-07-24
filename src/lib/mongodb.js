@@ -1,14 +1,25 @@
 import { MongoClient } from 'mongodb'
 
 const uri = process.env.MONGODB_URI
-const options = {}
+
+if (!uri) {
+  throw new Error('Please add your Mongo URI to environment variables')
+}
+
+const options = {
+  serverSelectionTimeoutMS: 10000,
+  socketTimeoutMS: 45000,
+  family: 4, // Use IPv4, skip trying IPv6
+  maxPoolSize: 10,
+  serverApi: {
+    version: '1',
+    strict: true,
+    deprecationErrors: true,
+  }
+}
 
 let client
 let clientPromise
-
-if (!process.env.MONGODB_URI) {
-  throw new Error('Please add your Mongo URI to .env.local')
-}
 
 if (process.env.NODE_ENV === 'development') {
   if (!global._mongoClientPromise) {
