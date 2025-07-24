@@ -2,6 +2,23 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { 
+  User, 
+  Mail, 
+  Lock, 
+  Eye, 
+  EyeOff, 
+  UserPlus, 
+  Shield, 
+  AlertCircle,
+  CheckCircle,
+  Hash,
+  Phone,
+  Users,
+  Crown,
+  HardHat,
+  UserCheck
+} from 'lucide-react'
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -16,6 +33,8 @@ export default function RegisterPage() {
   const [error, setError] = useState('')
   const [errorType, setErrorType] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const router = useRouter()
 
   const handleSubmit = async (e) => {
@@ -112,173 +131,282 @@ export default function RegisterPage() {
     
     return errorFields[errorType] === fieldName 
       ? 'border-red-500 bg-red-50 focus:ring-red-500 focus:border-red-500' 
-      : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+      : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500 bg-white/70'
+  }
+
+  // Get role icon
+  const getRoleIcon = (role) => {
+    switch (role) {
+      case 'guard':
+        return <UserCheck className="w-4 h-4" />
+      case 'security_supervisor':
+        return <Shield className="w-4 h-4" />
+      case 'maintenance':
+        return <HardHat className="w-4 h-4" />
+      case 'management':
+        return <Crown className="w-4 h-4" />
+      default:
+        return <Users className="w-4 h-4" />
+    }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-8">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-md p-6">
-        <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">User Registration</h1>
-          <p className="text-gray-600">Create your account</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center p-4">
+      {/* Background decoration */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-600/20 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-indigo-400/20 to-pink-600/20 rounded-full blur-3xl"></div>
+      </div>
+
+      <div className="relative z-10 w-full max-w-2xl">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="relative mx-auto mb-6">
+            <div className="w-20 h-20 bg-gradient-to-br from-green-500 to-emerald-600 rounded-3xl flex items-center justify-center mx-auto shadow-xl">
+              <UserPlus className="w-10 h-10 text-white" />
+            </div>
+            <div className="absolute -inset-2 bg-gradient-to-br from-green-500 to-emerald-600 rounded-3xl opacity-20 blur-lg"></div>
+          </div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 via-green-900 to-emerald-900 bg-clip-text text-transparent mb-2">
+            Create Account
+          </h1>
+          <p className="text-gray-600 text-lg">Join the IRPA System</p>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Full Name *
-            </label>
-            <input
-              type="text"
-              name="fullName"
-              value={formData.fullName}
-              onChange={handleChange}
-              required
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${getFieldErrorStyle('fullName')}`}
-              placeholder="John Doe"
-            />
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Email *
-            </label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${getFieldErrorStyle('email')}`}
-              placeholder="user@example.com"
-            />
-            {errorType === 'EMAIL_EXISTS' && (
-              <p className="text-red-600 text-xs mt-1">This email is already registered</p>
-            )}
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Password *
-            </label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${getFieldErrorStyle('password')}`}
-              placeholder="Enter password"
-            />
-            {errorType === 'PASSWORD_TOO_SHORT' && (
-              <p className="text-red-600 text-xs mt-1">Password must be at least 6 characters</p>
-            )}
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Confirm Password *
-            </label>
-            <input
-              type="password"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              required
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${getFieldErrorStyle('confirmPassword')}`}
-              placeholder="Confirm password"
-            />
-            {errorType === 'PASSWORD_MISMATCH' && (
-              <p className="text-red-600 text-xs mt-1">Passwords don't match</p>
-            )}
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Role *
-            </label>
-            <select
-              name="role"
-              value={formData.role}
-              onChange={handleChange}
-              required
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${getFieldErrorStyle('role')}`}
-            >
-              <option value="">Select Role</option>
-              <option value="guard">Guard</option>
-              <option value="security_supervisor">Security Supervisor</option>
-              <option value="maintenance">Maintenance Team</option>
-              <option value="management">Management</option>
-            </select>
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Employee ID
-            </label>
-            <input
-              type="text"
-              name="employeeId"
-              value={formData.employeeId}
-              onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${getFieldErrorStyle('employeeId')}`}
-              placeholder="EMP001"
-            />
-            {errorType === 'EMPLOYEE_ID_EXISTS' && (
-              <p className="text-red-600 text-xs mt-1">This Employee ID is already taken</p>
-            )}
-          </div>
-
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Phone
-            </label>
-            <input
-              type="tel"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${getFieldErrorStyle('phone')}`}
-              placeholder="+1234567890"
-            />
-          </div>
-
-          {error && (
-            <div className={`mb-4 text-sm p-3 rounded ${
-              errorType === 'EMAIL_EXISTS' || errorType === 'EMPLOYEE_ID_EXISTS' 
-                ? 'text-red-600 bg-red-50 border border-red-200' 
-                : 'text-red-600 bg-red-50'
-            }`}>
-              <div className="flex items-start">
-                <svg className="w-4 h-4 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-                {error}
+        {/* Main Form Card */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 p-8">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Full Name and Email Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="block text-sm font-bold text-gray-700 flex items-center gap-2">
+                  <User className="w-4 h-4 text-green-600" />
+                  Full Name
+                  <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="fullName"
+                  value={formData.fullName}
+                  onChange={handleChange}
+                  required
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-200 text-gray-900 ${getFieldErrorStyle('fullName')}`}
+                  placeholder="John Doe"
+                />
               </div>
-              {errorType === 'EMPLOYEE_ID_EXISTS' && (
-                <div className="mt-2 text-xs text-red-500">
-                  💡 Tip: Try adding numbers or your initials (e.g., EMP001, JD123)
-                </div>
-              )}
+
+              <div className="space-y-2">
+                <label className="block text-sm font-bold text-gray-700 flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-green-600" />
+                  Email Address
+                  <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-200 text-gray-900 ${getFieldErrorStyle('email')}`}
+                  placeholder="user@example.com"
+                />
+                {errorType === 'EMAIL_EXISTS' && (
+                  <p className="text-red-600 text-xs mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    This email is already registered
+                  </p>
+                )}
+              </div>
             </div>
-          )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-blue-300 transition-colors"
-          >
-            {loading ? 'Creating Account...' : 'Create Account'}
-          </button>
-        </form>
+            {/* Password Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="block text-sm font-bold text-gray-700 flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-green-600" />
+                  Password
+                  <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    required
+                    className={`w-full px-4 pr-12 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-200 text-gray-900 ${getFieldErrorStyle('password')}`}
+                    placeholder="Enter password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+                {errorType === 'PASSWORD_TOO_SHORT' && (
+                  <p className="text-red-600 text-xs mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    Password must be at least 6 characters
+                  </p>
+                )}
+              </div>
 
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
-            Already have an account?{' '}
-            <Link href="/login" className="text-blue-600 hover:text-blue-700">
-              Sign in here
-            </Link>
-          </p>
+              <div className="space-y-2">
+                <label className="block text-sm font-bold text-gray-700 flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-green-600" />
+                  Confirm Password
+                  <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    required
+                    className={`w-full px-4 pr-12 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-200 text-gray-900 ${getFieldErrorStyle('confirmPassword')}`}
+                    placeholder="Confirm password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+                {errorType === 'PASSWORD_MISMATCH' && (
+                  <p className="text-red-600 text-xs mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    Passwords don't match
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Role Selection */}
+            <div className="space-y-2">
+              <label className="block text-sm font-bold text-gray-700 flex items-center gap-2">
+                <Users className="w-4 h-4 text-green-600" />
+                Role
+                <span className="text-red-500">*</span>
+              </label>
+              <select
+                name="role"
+                value={formData.role}
+                onChange={handleChange}
+                required
+                className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-200 text-gray-900 ${getFieldErrorStyle('role')}`}
+              >
+                <option value="">Select Your Role</option>
+                <option value="guard">🛡️ Security Guard</option>
+                <option value="security_supervisor">👮 Security Supervisor</option>
+                <option value="maintenance">🔧 Maintenance Team</option>
+                <option value="management">👑 Management</option>
+              </select>
+            </div>
+
+            {/* Employee ID and Phone Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="block text-sm font-bold text-gray-700 flex items-center gap-2">
+                  <Hash className="w-4 h-4 text-green-600" />
+                  Employee ID
+                  <span className="text-gray-400 text-xs">(Optional)</span>
+                </label>
+                <input
+                  type="text"
+                  name="employeeId"
+                  value={formData.employeeId}
+                  onChange={handleChange}
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-200 text-gray-900 ${getFieldErrorStyle('employeeId')}`}
+                  placeholder="EMP001"
+                />
+                {errorType === 'EMPLOYEE_ID_EXISTS' && (
+                  <div className="text-red-600 text-xs mt-1">
+                    <p className="flex items-center gap-1 mb-1">
+                      <AlertCircle className="w-3 h-3" />
+                      This Employee ID is already taken
+                    </p>
+                    <p className="text-red-500 bg-red-50 rounded-lg p-2 border border-red-200">
+                      💡 Try: EMP{Math.floor(Math.random() * 999) + 100}, {formData.fullName.split(' ').map(n => n[0]).join('')}123, or add your initials
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-bold text-gray-700 flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-green-600" />
+                  Phone Number
+                  <span className="text-gray-400 text-xs">(Optional)</span>
+                </label>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-200 text-gray-900 ${getFieldErrorStyle('phone')}`}
+                  placeholder="+1 (555) 123-4567"
+                />
+              </div>
+            </div>
+
+            {/* Error Message */}
+            {error && (
+              <div className={`rounded-xl p-4 border ${
+                errorType === 'EMAIL_EXISTS' || errorType === 'EMPLOYEE_ID_EXISTS' 
+                  ? 'bg-red-50 border-red-200' 
+                  : 'bg-red-50 border-red-200'
+              }`}>
+                <div className="flex items-start">
+                  <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 mr-3 flex-shrink-0" />
+                  <div>
+                    <p className="text-red-800 font-medium">{error}</p>
+                    {errorType === 'EMPLOYEE_ID_EXISTS' && (
+                      <p className="text-red-600 text-sm mt-1">
+                        Please try a different Employee ID or leave it blank.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 disabled:from-green-300 disabled:to-emerald-400 text-white py-4 px-6 rounded-xl font-bold text-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none flex items-center justify-center gap-3"
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                  Creating Account...
+                </>
+              ) : (
+                <>
+                  <UserPlus className="w-5 h-5" />
+                  Create Account
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Login Link */}
+          <div className="mt-8 text-center">
+            <p className="text-gray-600">
+              Already have an account?{' '}
+              <Link 
+                href="/login" 
+                className="text-green-600 hover:text-green-700 font-bold underline decoration-2 underline-offset-2 hover:underline-offset-4 transition-all duration-200"
+              >
+                Sign In
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>
