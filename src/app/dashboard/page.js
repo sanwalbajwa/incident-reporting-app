@@ -136,14 +136,6 @@ export default function Dashboard() {
               <Shield className="w-8 h-8 text-blue-600" />
               Shift Status
             </h2>
-            <button
-              onClick={handleRefresh}
-              disabled={loading}
-              className="p-3 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 disabled:text-gray-400 transition-all duration-200 hover:scale-105"
-              title="Refresh status"
-            >
-              <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-            </button>
           </div>
           
           {activeShift ? (

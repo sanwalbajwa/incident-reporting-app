@@ -245,16 +245,6 @@ export default function ClientsPage() {
                 ))}
              
                </select>
-              
-              <button
-                onClick={loadClients}
-                disabled={loading}
-                className="bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 text-white px-4 py-3 rounded-xl font-medium transition-colors flex items-center gap-2"
-            
-               >
-                <RefreshCw className={`w-5 h-5 ${loading ?  'animate-spin' : ''}`} />
-                Refresh
-              </button>
             </div>
           </div>
         </div>
