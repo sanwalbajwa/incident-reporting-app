@@ -184,15 +184,6 @@ export default function SupervisorDashboard() {
               <p className="text-gray-600 mt-1">Welcome back, {session.user.name?.split(' ')[0]}</p>
             </div>
           </div>
-          
-          <button
-            onClick={loadMessages}
-            disabled={loading}
-            className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white px-6 py-3 rounded-xl font-medium transition-colors shadow-lg"
-          >
-            <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
         </div>
 
         {/* Stats Overview */}
