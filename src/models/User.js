@@ -78,4 +78,67 @@ export class User {
       }
     )
   }
+  static async updateProfile(userId, profileData) {
+    const client = await clientPromise
+    const db = client.db('incident-reporting-db')
+    const users = db.collection('users')
+    
+    return await users.updateOne(
+      { _id: new ObjectId(userId) },
+      { 
+        $set: { 
+          ...profileData,
+          updatedAt: new Date()
+        }
+      }
+    )
+  }
+
+  static async updatePassword(userId, hashedPassword) {
+    const client = await clientPromise
+    const db = client.db('incident-reporting-db')
+    const users = db.collection('users')
+    
+    return await users.updateOne(
+      { _id: new ObjectId(userId) },
+      { 
+        $set: { 
+          password: hashedPassword,
+          updatedAt: new Date()
+        }
+      }
+    )
+  }
+
+  // Enhanced findById that includes all fields
+  static async findByIdComplete(id) {
+    const client = await clientPromise
+    const db = client.db('incident-reporting-db')
+    const users = db.collection('users')
+    
+    return await users.findOne({ _id: new ObjectId(id) })
+  }
+
+  // Method to get user stats/activity
+  static async getUserStats(userId) {
+    const client = await clientPromise
+    const db = client.db('incident-reporting-db')
+    
+    // Get incident count
+    const incidents = db.collection('incidents')
+    const incidentCount = await incidents.countDocuments({ 
+      guardId: new ObjectId(userId) 
+    })
+    
+    // Get checkin count
+    const checkins = db.collection('checkins')
+    const checkinCount = await checkins.countDocuments({ 
+      guardId: new ObjectId(userId) 
+    })
+    
+    return {
+      totalIncidents: incidentCount,
+      totalShifts: checkinCount
+    }
+  }
 }

@@ -162,12 +162,12 @@ export default function RegisterPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="relative mx-auto mb-6">
-            <div className="w-20 h-20 bg-gradient-to-br from-green-500 to-emerald-600 rounded-3xl flex items-center justify-center mx-auto shadow-xl">
+            <div className="w-20 h-20 bg-gradient-to-br from-blue-600 via-purple-600 to-blue-800 rounded-3xl flex items-center justify-center mx-auto shadow-xl">
               <UserPlus className="w-10 h-10 text-white" />
             </div>
-            <div className="absolute -inset-2 bg-gradient-to-br from-green-500 to-emerald-600 rounded-3xl opacity-20 blur-lg"></div>
+            <div className="absolute -inset-2 bg-gradient-to-br from-blue-600 via-purple-600 to-blue-800 rounded-3xl opacity-20 blur-lg"></div>
           </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 via-green-900 to-emerald-900 bg-clip-text text-transparent mb-2">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900 bg-clip-text text-transparent mb-2">
             Create Account
           </h1>
           <p className="text-gray-600 text-lg">Join the IRPA System</p>
@@ -180,7 +180,7 @@ export default function RegisterPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="block text-sm font-bold text-gray-700 flex items-center gap-2">
-                  <User className="w-4 h-4 text-green-600" />
+                  <User className="w-4 h-4 text-blue-600" />
                   Full Name
                   <span className="text-red-500">*</span>
                 </label>
@@ -197,7 +197,7 @@ export default function RegisterPage() {
 
               <div className="space-y-2">
                 <label className="block text-sm font-bold text-gray-700 flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-green-600" />
+                  <Mail className="w-4 h-4 text-blue-600" />
                   Email Address
                   <span className="text-red-500">*</span>
                 </label>
@@ -223,7 +223,7 @@ export default function RegisterPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="block text-sm font-bold text-gray-700 flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-green-600" />
+                  <Lock className="w-4 h-4 text-blue-600" />
                   Password
                   <span className="text-red-500">*</span>
                 </label>
@@ -255,7 +255,7 @@ export default function RegisterPage() {
 
               <div className="space-y-2">
                 <label className="block text-sm font-bold text-gray-700 flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-green-600" />
+                  <Lock className="w-4 h-4 text-blue-600" />
                   Confirm Password
                   <span className="text-red-500">*</span>
                 </label>
@@ -289,7 +289,7 @@ export default function RegisterPage() {
             {/* Role Selection */}
             <div className="space-y-2">
               <label className="block text-sm font-bold text-gray-700 flex items-center gap-2">
-                <Users className="w-4 h-4 text-green-600" />
+                <Users className="w-4 h-4 text-blue-600" />
                 Role
                 <span className="text-red-500">*</span>
               </label>
@@ -312,7 +312,7 @@ export default function RegisterPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="block text-sm font-bold text-gray-700 flex items-center gap-2">
-                  <Hash className="w-4 h-4 text-green-600" />
+                  <Hash className="w-4 h-4 text-blue-600" />
                   Employee ID
                   <span className="text-gray-400 text-xs">(Optional)</span>
                 </label>
@@ -339,7 +339,7 @@ export default function RegisterPage() {
 
               <div className="space-y-2">
                 <label className="block text-sm font-bold text-gray-700 flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-green-600" />
+                  <Phone className="w-4 h-4 text-blue-600" />
                   Phone Number
                   <span className="text-gray-400 text-xs">(Optional)</span>
                 </label>
@@ -379,7 +379,7 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 disabled:from-green-300 disabled:to-emerald-400 text-white py-4 px-6 rounded-xl font-bold text-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none flex items-center justify-center gap-3"
+              className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-blue-300 disabled:to-blue-400 text-white py-4 px-6 rounded-xl font-bold text-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none flex items-center justify-center gap-3"
             >
               {loading ? (
                 <>
@@ -401,7 +401,7 @@ export default function RegisterPage() {
               Already have an account?{' '}
               <Link 
                 href="/login" 
-                className="text-green-600 hover:text-green-700 font-bold underline decoration-2 underline-offset-2 hover:underline-offset-4 transition-all duration-200"
+                className="text-blue-600 hover:text-blue-700 font-bold underline decoration-2 underline-offset-2 hover:underline-offset-4 transition-all duration-200"
               >
                 Sign In
               </Link>
