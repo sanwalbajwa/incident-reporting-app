@@ -1,7 +1,9 @@
+// Update: src/app/incidents/page.js
 'use client'
 import { useSession } from 'next-auth/react'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useShiftStatus } from '@/hooks/useShiftStatus'
 import { 
   ArrowLeft, 
   Plus, 
@@ -18,12 +20,16 @@ import {
   Clock, 
   AlertCircle,
   TrendingUp,
-  BarChart3
+  BarChart3,
+  Shield,
+  Play,
+  Camera
 } from 'lucide-react'
 
 export default function IncidentsPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const { activeShift, loading: shiftLoading, isOnDuty } = useShiftStatus()
   const [incidents, setIncidents] = useState([])
   const [loading, setLoading] = useState(false)
   const [filter, setFilter] = useState('all') // 'all', 'today', 'week', 'month'
@@ -119,7 +125,7 @@ export default function IncidentsPage() {
 
   const filteredIncidents = filterIncidents(incidents)
 
-  if (status === 'loading') {
+  if (status === 'loading' || shiftLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
         <div className="text-center bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/20">
@@ -142,6 +148,7 @@ export default function IncidentsPage() {
               <ArrowLeft className="w-4 h-4" />
               <span className="hidden sm:inline">Dashboard</span>
         </button>
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
@@ -154,14 +161,57 @@ export default function IncidentsPage() {
             </div>
           </div>
           
-          <button
-            onClick={() => router.push('/incidents/new')}
-            className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-3 rounded-xl font-bold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
-          >
-            <Plus className="w-5 h-5" />
-            New Report
-          </button>
+          {/* Conditional New Report Button */}
+          {isOnDuty ? (
+            <button
+              onClick={() => router.push('/incidents/new')}
+              className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-3 rounded-xl font-bold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              <Plus className="w-5 h-5" />
+              New Report
+            </button>
+          ) : (
+            <div className="flex flex-col items-end gap-2">
+              <button
+                onClick={() => router.push('/checkin')}
+                className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-6 py-3 rounded-xl font-bold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+              >
+                <Play className="w-5 h-5" />
+                <Camera className="w-5 h-5" />
+                Start Shift to Report
+              </button>
+              <p className="text-xs text-amber-600 bg-amber-50 rounded-lg py-1 px-3 border border-amber-200 flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" />
+                Shift required for new reports
+              </p>
+            </div>
+          )}
         </div>
+
+        {/* Shift Status Warning */}
+        {!isOnDuty && (
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-6">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="flex-shrink-0 h-6 w-6 text-amber-600 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-amber-800 mb-2">
+                  Not Currently On Duty
+                </h3>
+                <p className="text-amber-700 mb-4">
+                  You can view your previous reports, but you need to start your shift to create new incident reports or send messages.
+                </p>
+                <button
+                  onClick={() => router.push('/checkin')}
+                  className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white px-4 py-2 rounded-xl font-medium transition-all duration-200 flex items-center gap-2"
+                >
+                  <Play className="w-4 h-4" />
+                  <Camera className="w-4 h-4" />
+                  Start My Shift
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Filter Buttons */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6">
@@ -222,6 +272,7 @@ export default function IncidentsPage() {
             <div className="text-2xl font-bold text-blue-600">{incidents.length}</div>
             <div className="text-sm text-gray-600 font-medium">Total Reports</div>
           </div>
+          
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6 text-center">
             <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-3">
               <Clock className="w-6 h-6 text-white" />
@@ -231,6 +282,7 @@ export default function IncidentsPage() {
             </div>
             <div className="text-sm text-gray-600 font-medium">Pending Review</div>
           </div>
+          
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6 text-center">
             <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-3">
               <Eye className="w-6 h-6 text-white" />
@@ -240,6 +292,7 @@ export default function IncidentsPage() {
             </div>
             <div className="text-sm text-gray-600 font-medium">Under Review</div>
           </div>
+          
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6 text-center">
             <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-3">
               <CheckCircle className="w-6 h-6 text-white" />
@@ -251,6 +304,7 @@ export default function IncidentsPage() {
           </div>
         </div>
 
+        {/* Rest of the incidents list remains the same... */}
         {/* Incidents List */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden">
           {loading ? (
@@ -412,17 +466,28 @@ export default function IncidentsPage() {
               <h3 className="text-xl font-bold text-gray-900 mb-4">No incidents found</h3>
               <p className="text-gray-600 mb-8 text-lg">
                 {filter === 'all' 
-                  ? "You haven&apos;t reported any incidents yet."
+                  ? "You haven't reported any incidents yet."
                   : `No incidents found for the selected time period.`
                 }
               </p>
-              <button
-                onClick={() => router.push('/incidents/new')}
-                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-8 py-4 rounded-xl font-bold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center gap-2 mx-auto"
-              >
-                <Plus className="w-5 h-5" />
-                Report First Incident
-              </button>
+              {isOnDuty ? (
+                <button
+                  onClick={() => router.push('/incidents/new')}
+                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-8 py-4 rounded-xl font-bold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center gap-2 mx-auto"
+                >
+                  <Plus className="w-5 h-5" />
+                  Report First Incident
+                </button>
+              ) : (
+                <button
+                  onClick={() => router.push('/checkin')}
+                  className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-8 py-4 rounded-xl font-bold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center gap-2 mx-auto"
+                >
+                  <Play className="w-5 h-5" />
+                  <Camera className="w-5 h-5" />
+                  Start Shift to Report
+                </button>
+              )}
             </div>
           )}
         </div>

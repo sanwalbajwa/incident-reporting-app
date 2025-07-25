@@ -1,7 +1,10 @@
+// Update: src/app/incidents/new/page.js - Fixed function order
 'use client'
 import { useSession } from 'next-auth/react'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useShiftStatus } from '@/hooks/useShiftStatus'
+import ShiftGuard from '@/components/ShiftGuard'
 import { 
   ArrowLeft, 
   Send, 
@@ -36,11 +39,12 @@ const INCIDENT_TYPES = [
 export default function NewIncidentPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const { isOnDuty, loading: shiftLoading } = useShiftStatus()
   const [loading, setLoading] = useState(false)
   const [clients, setClients] = useState([])
-  const [recipients, setRecipients] = useState([]) // Add recipients state
+  const [recipients, setRecipients] = useState([])
   const [formData, setFormData] = useState({
-    recipientId: '', // Add recipient field
+    recipientId: '',
     clientId: '',
     incidentType: '',
     customIncidentType: '',
@@ -53,27 +57,7 @@ export default function NewIncidentPage() {
     attachments: []
   })
 
-  // Redirect if not logged in
-  useEffect(() => {
-    if (status === 'loading') return
-    if (!session) router.push('/login')
-  }, [session, status, router])
-
-  // Load clients and recipients
-  useEffect(() => {
-    if (session) {
-      loadClients()
-      loadRecipients()
-      // Auto-fill current date and time
-      const now = new Date()
-      setFormData(prev => ({
-        ...prev,
-        incidentDate: now.toISOString().split('T')[0],
-        incidentTime: now.toTimeString().slice(0, 5)
-      }))
-    }
-  }, [session])
-
+  // MOVE THESE FUNCTIONS BEFORE useEffect
   const loadClients = async () => {
     try {
       const response = await fetch('/api/clients')
@@ -97,126 +81,126 @@ export default function NewIncidentPage() {
       }
     } catch (error) {
       console.error('Error loading recipients:', error)
-      // If API doesn't exist yet, we'll create it next
+    }
+  }
+
+  // Separate function to upload files with better debugging
+  const uploadFiles = async (incidentId) => {
+    console.log('=== FILE UPLOAD DEBUG ===')
+    console.log('Incident ID:', incidentId)
+    console.log('Files to upload:', formData.attachments.length)
+    
+    try {
+      const formDataToSend = new FormData()
+      formDataToSend.append('incidentId', incidentId)
+      
+      // Log each file being added
+      for (let i = 0; i < formData.attachments.length; i++) {
+        const file = formData.attachments[i]
+        console.log(`File ${i + 1}:`, {
+          name: file.name,
+          size: file.size,
+          type: file.type
+        })
+        formDataToSend.append('files', file)
+      }
+
+      console.log('FormData created, sending upload request...')
+
+      const uploadResponse = await fetch('/api/incidents/upload', {
+        method: 'POST',
+        body: formDataToSend
+      })
+
+      const uploadData = await uploadResponse.json()
+      console.log('Upload API response:', uploadData)
+      
+      if (!uploadResponse.ok) {
+        throw new Error(uploadData.error || 'Upload failed')
+      }
+      
+      return uploadData
+    } catch (error) {
+      console.error('Upload error details:', error)
+      throw error
     }
   }
 
   const handleSubmit = async (e) => {
-  e.preventDefault()
-  setLoading(true)
+    e.preventDefault()
+    setLoading(true)
 
-  try {
-    console.log('=== INCIDENT CREATION DEBUG ===')
-    console.log('Form data:', formData)
-    console.log('Attachments selected:', formData.attachments?.length || 0)
-    
-    // Determine if this is a communication or incident
-    const isCommunication = formData.incidentType === 'Communication/Message'
-    
-    const incidentData = {
-      recipientId: formData.recipientId,
-      clientId: formData.clientId,
-      incidentType: formData.incidentType === 'Other' ? formData.customIncidentType : formData.incidentType,
-      priority: formData.priority,
-      incidentDate: formData.incidentDate,
-      incidentTime: formData.incidentTime,
-      incidentDateTime: new Date(`${formData.incidentDate}T${formData.incidentTime}`),
-      withinProperty: formData.locationWithinProperty,
-      location: formData.locationDescription,
-      description: formData.description,
-      messageType: isCommunication ? 'communication' : 'incident'
-    }
-
-    console.log('Incident data to submit:', incidentData)
-
-     const response = await fetch('/api/incidents/create', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(incidentData)
-    })
-
-    const data = await response.json()
-    console.log('Incident creation response:', data)
-
-    if (response.ok) {
-      const incidentId = data.incident._id
-      console.log('Incident created with ID:', incidentId)
+    try {
+      console.log('=== INCIDENT CREATION DEBUG ===')
+      console.log('Form data:', formData)
+      console.log('Attachments selected:', formData.attachments?.length || 0)
       
-      // Step 2: Upload files if any exist
-      if (formData.attachments && formData.attachments.length > 0) {
-        console.log('Starting file upload for', formData.attachments.length, 'files')
-        
-        try {
-          const uploadResult = await uploadFiles(incidentId)
-          console.log('File upload result:', uploadResult)
-        } catch (uploadError) {
-          console.error('File upload failed:', uploadError)
-          // Continue anyway - incident is created
-        }
-      } else {
-        console.log('No files to upload')
-      }
+      // Determine if this is a communication or incident
+      const isCommunication = formData.incidentType === 'Communication/Message'
       
-      if (isCommunication) {
-        alert(`Message sent successfully!\nMessage ID: ${data.incident.incidentId}`)
-      } else {
-        alert(`Incident reported successfully!\nIncident ID: ${data.incident.incidentId}`)
+      const incidentData = {
+        recipientId: formData.recipientId,
+        clientId: formData.clientId,
+        incidentType: formData.incidentType === 'Other' ? formData.customIncidentType : formData.incidentType,
+        priority: formData.priority,
+        incidentDate: formData.incidentDate,
+        incidentTime: formData.incidentTime,
+        incidentDateTime: new Date(`${formData.incidentDate}T${formData.incidentTime}`),
+        withinProperty: formData.locationWithinProperty,
+        location: formData.locationDescription,
+        description: formData.description,
+        messageType: isCommunication ? 'communication' : 'incident'
       }
-      router.push('/incidents')
-    } else {
-      alert(`Error: ${data.error || 'Failed to submit'}`)
-      console.error('Server error:', data)
-    }
-  } catch (error) {
-    alert(`Network error: ${error.message}`)
-    console.error('Network error:', error)
-  }
-  setLoading(false)
-}
 
- // Separate function to upload files with better debugging
-const uploadFiles = async (incidentId) => {
-  console.log('=== FILE UPLOAD DEBUG ===')
-  console.log('Incident ID:', incidentId)
-  console.log('Files to upload:', formData.attachments.length)
-  
-  try {
-    const formDataToSend = new FormData()
-    formDataToSend.append('incidentId', incidentId)
-    
-    // Log each file being added
-    for (let i = 0; i < formData.attachments.length; i++) {
-      const file = formData.attachments[i]
-      console.log(`File ${i + 1}:`, {
-        name: file.name,
-        size: file.size,
-        type: file.type
+      console.log('Incident data to submit:', incidentData)
+
+      // Step 1: Create incident/communication first
+      const response = await fetch('/api/incidents/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(incidentData)
       })
-      formDataToSend.append('files', file)
+
+      const data = await response.json()
+      console.log('Incident creation response:', data)
+
+      if (response.ok) {
+        const incidentId = data.incident._id
+        console.log('Incident created with ID:', incidentId)
+        
+        // Step 2: Upload files if any exist
+        if (formData.attachments && formData.attachments.length > 0) {
+          console.log('Starting file upload for', formData.attachments.length, 'files')
+          
+          try {
+            const uploadResult = await uploadFiles(incidentId)
+            console.log('File upload result:', uploadResult)
+          } catch (uploadError) {
+            console.error('File upload failed:', uploadError)
+            // Continue anyway - incident is created
+          }
+        } else {
+          console.log('No files to upload')
+        }
+        
+        if (isCommunication) {
+          alert(`Message sent successfully!\nMessage ID: ${data.incident.incidentId}`)
+        } else {
+          alert(`Incident reported successfully!\nIncident ID: ${data.incident.incidentId}`)
+        }
+        router.push('/incidents')
+      } else {
+        alert(`Error: ${data.error || 'Failed to submit'}`)
+        console.error('Server error:', data)
+      }
+    } catch (error) {
+      alert(`Network error: ${error.message}`)
+      console.error('Network error:', error)
     }
-
-    console.log('FormData created, sending upload request...')
-
-    const uploadResponse = await fetch('/api/incidents/upload', {
-      method: 'POST',
-      body: formDataToSend
-    })
-
-    const uploadData = await uploadResponse.json()
-    console.log('Upload API response:', uploadData)
-    
-    if (!uploadResponse.ok) {
-      throw new Error(uploadData.error || 'Upload failed')
-    }
-    
-    return uploadData
-  } catch (error) {
-    console.error('Upload error details:', error)
-    throw error
+    setLoading(false)
   }
-}
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -241,10 +225,29 @@ const uploadFiles = async (incidentId) => {
     }))
   }
 
-  // Check if this is a communication
-  const isCommunication = formData.incidentType === 'Communication/Message'
+  // Redirect if not logged in
+  useEffect(() => {
+    if (status === 'loading') return
+    if (!session) router.push('/login')
+  }, [session, status, router])
 
-  if (status === 'loading') {
+  // Load clients and recipients - NOW FUNCTIONS ARE DEFINED ABOVE
+  useEffect(() => {
+    if (session) {
+      loadClients()
+      loadRecipients()
+      // Auto-fill current date and time
+      const now = new Date()
+      setFormData(prev => ({
+        ...prev,
+        incidentDate: now.toISOString().split('T')[0],
+        incidentTime: now.toTimeString().slice(0, 5)
+      }))
+    }
+  }, [session])
+
+  // Show loading while checking shift status
+  if (status === 'loading' || shiftLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
         <div className="text-center bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/20">
@@ -256,6 +259,14 @@ const uploadFiles = async (incidentId) => {
   }
 
   if (!session) return null
+
+  // Guard: Show shift requirement if not on duty
+  if (!isOnDuty) {
+    return <ShiftGuard requiresShift={true} />
+  }
+
+  // Check if this is a communication
+  const isCommunication = formData.incidentType === 'Communication/Message'
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
