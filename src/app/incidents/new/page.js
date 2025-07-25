@@ -102,91 +102,121 @@ export default function NewIncidentPage() {
   }
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setLoading(true)
+  e.preventDefault()
+  setLoading(true)
 
-    try {
-      // Determine if this is a communication or incident
-      const isCommunication = formData.incidentType === 'Communication/Message'
+  try {
+    console.log('=== INCIDENT CREATION DEBUG ===')
+    console.log('Form data:', formData)
+    console.log('Attachments selected:', formData.attachments?.length || 0)
+    
+    // Determine if this is a communication or incident
+    const isCommunication = formData.incidentType === 'Communication/Message'
+    
+    const incidentData = {
+      recipientId: formData.recipientId,
+      clientId: formData.clientId,
+      incidentType: formData.incidentType === 'Other' ? formData.customIncidentType : formData.incidentType,
+      priority: formData.priority,
+      incidentDate: formData.incidentDate,
+      incidentTime: formData.incidentTime,
+      incidentDateTime: new Date(`${formData.incidentDate}T${formData.incidentTime}`),
+      withinProperty: formData.locationWithinProperty,
+      location: formData.locationDescription,
+      description: formData.description,
+      messageType: isCommunication ? 'communication' : 'incident'
+    }
+
+    console.log('Incident data to submit:', incidentData)
+
+     const response = await fetch('/api/incidents/create', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(incidentData)
+    })
+
+    const data = await response.json()
+    console.log('Incident creation response:', data)
+
+    if (response.ok) {
+      const incidentId = data.incident._id
+      console.log('Incident created with ID:', incidentId)
       
-      const incidentData = {
-        recipientId: formData.recipientId, // Include recipient
-        clientId: formData.clientId,
-        incidentType: formData.incidentType === 'Other' ? formData.customIncidentType : formData.incidentType,
-        priority: formData.priority, // Include priority
-        incidentDate: formData.incidentDate,
-        incidentTime: formData.incidentTime,
-        incidentDateTime: new Date(`${formData.incidentDate}T${formData.incidentTime}`),
-        withinProperty: formData.locationWithinProperty,
-        location: formData.locationDescription,
-        description: formData.description,
-        messageType: isCommunication ? 'communication' : 'incident' // Add message type
-      }
-
-      console.log('Submitting data:', incidentData)
-
-      // Create incident/communication
-      const response = await fetch('/api/incidents/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(incidentData)
-      })
-
-      const data = await response.json()
-      console.log('Response data:', data)
-
-      if (response.ok) {
-        const incidentId = data.incident._id
+      // Step 2: Upload files if any exist
+      if (formData.attachments && formData.attachments.length > 0) {
+        console.log('Starting file upload for', formData.attachments.length, 'files')
         
-        // Upload files if any exist
-        if (formData.attachments && formData.attachments.length > 0) {
-          await uploadFiles(incidentId)
+        try {
+          const uploadResult = await uploadFiles(incidentId)
+          console.log('File upload result:', uploadResult)
+        } catch (uploadError) {
+          console.error('File upload failed:', uploadError)
+          // Continue anyway - incident is created
         }
-        
-        if (isCommunication) {
-          alert(`Message sent successfully to recipient!\nMessage ID: ${data.incident.incidentId}`)
-        } else {
-          alert(`Incident reported successfully!\nIncident ID: ${data.incident.incidentId}`)
-        }
-        router.push('/incidents')
       } else {
-        alert(`Error: ${data.error || 'Failed to submit'}`)
-        console.error('Server error:', data)
+        console.log('No files to upload')
       }
-    } catch (error) {
-      alert(`Network error: ${error.message}`)
-      console.error('Network error:', error)
-    }
-    setLoading(false)
-  }
-
-  // Separate function to upload files
-  const uploadFiles = async (incidentId) => {
-    try {
-      const formDataToSend = new FormData()
-      formDataToSend.append('incidentId', incidentId)
       
-      for (let i = 0; i < formData.attachments.length; i++) {
-        formDataToSend.append('files', formData.attachments[i])
+      if (isCommunication) {
+        alert(`Message sent successfully!\nMessage ID: ${data.incident.incidentId}`)
+      } else {
+        alert(`Incident reported successfully!\nIncident ID: ${data.incident.incidentId}`)
       }
+      router.push('/incidents')
+    } else {
+      alert(`Error: ${data.error || 'Failed to submit'}`)
+      console.error('Server error:', data)
+    }
+  } catch (error) {
+    alert(`Network error: ${error.message}`)
+    console.error('Network error:', error)
+  }
+  setLoading(false)
+}
 
-      const uploadResponse = await fetch('/api/incidents/upload', {
-        method: 'POST',
-        body: formDataToSend
+ // Separate function to upload files with better debugging
+const uploadFiles = async (incidentId) => {
+  console.log('=== FILE UPLOAD DEBUG ===')
+  console.log('Incident ID:', incidentId)
+  console.log('Files to upload:', formData.attachments.length)
+  
+  try {
+    const formDataToSend = new FormData()
+    formDataToSend.append('incidentId', incidentId)
+    
+    // Log each file being added
+    for (let i = 0; i < formData.attachments.length; i++) {
+      const file = formData.attachments[i]
+      console.log(`File ${i + 1}:`, {
+        name: file.name,
+        size: file.size,
+        type: file.type
       })
-
-      const uploadData = await uploadResponse.json()
-      console.log('File upload response:', uploadData)
-      
-      if (!uploadResponse.ok) {
-        console.error('File upload failed:', uploadData.error)
-      }
-    } catch (error) {
-      console.error('File upload error:', error)
+      formDataToSend.append('files', file)
     }
+
+    console.log('FormData created, sending upload request...')
+
+    const uploadResponse = await fetch('/api/incidents/upload', {
+      method: 'POST',
+      body: formDataToSend
+    })
+
+    const uploadData = await uploadResponse.json()
+    console.log('Upload API response:', uploadData)
+    
+    if (!uploadResponse.ok) {
+      throw new Error(uploadData.error || 'Upload failed')
+    }
+    
+    return uploadData
+  } catch (error) {
+    console.error('Upload error details:', error)
+    throw error
   }
+}
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target

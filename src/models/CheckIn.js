@@ -95,23 +95,36 @@ export class CheckIn {
   
   
 static async getActiveShift(guardId) {
-  const client = await clientPromise
-  const db = client.db('incident-reporting-db')
-  const checkins = db.collection('checkins')
-  
-  console.log('getActiveShift - guardId:', guardId, typeof guardId)
-  
-  // Try exact match first
-  let result = await checkins.findOne({
-    guardId: new ObjectId(guardId),
-    checkOutTime: null
-  })
-  
-  if (result) {
-    console.log('Found exact match by ObjectId')
+    console.log('=== GET ACTIVE SHIFT DEBUG ===')
+    console.log('Looking for active shift for guard:', guardId)
+    
+    const client = await clientPromise
+    const db = client.db('incident-reporting-db')
+    const checkins = db.collection('checkins')
+    
+    console.log('guardId type:', typeof guardId)
+    
+    // Try exact match first
+    let result = await checkins.findOne({
+      guardId: new ObjectId(guardId),
+      checkOutTime: null
+    })
+    
+    if (result) {
+      console.log('Found active shift:', result._id)
+      console.log('Shift has checkInPhoto:', !!result.checkInPhoto)
+      console.log('Shift has checkOutPhoto:', !!result.checkOutPhoto)
+    } else {
+      console.log('No active shift found')
+      
+      // Debug: show all shifts for this guard
+      const allShifts = await checkins.find({ guardId: new ObjectId(guardId) }).toArray()
+      console.log('All shifts for this guard:', allShifts.length)
+    }
+    
+    console.log('=== GET ACTIVE SHIFT DEBUG END ===')
     return result
   }
-}
   
  static async getShiftHistory(guardId, limit = 10) {
   const client = await clientPromise
@@ -130,18 +143,60 @@ static async getActiveShift(guardId) {
   
   // New method: Update shift with photo
   static async updateShiftPhoto(shiftId, photoField, photoData) {
-    const client = await clientPromise
-    const db = client.db('incident-reporting-db')
-    const checkins = db.collection('checkins')
+    console.log('=== CHECKIN MODEL DEBUG ===')
+    console.log('Updating shift photo:')
+    console.log('- Shift ID:', shiftId)
+    console.log('- Photo field:', photoField)
+    console.log('- Photo data:', {
+      originalName: photoData.originalName,
+      fileName: photoData.fileName,
+      filePath: photoData.filePath,
+      fileSize: photoData.fileSize
+    })
     
-    return await checkins.updateOne(
-      { _id: new ObjectId(shiftId) },
-      {
+    try {
+      const client = await clientPromise
+      const db = client.db('incident-reporting-db')
+      const checkins = db.collection('checkins')
+      
+      const updateQuery = {
         $set: {
           [photoField]: photoData,
           updatedAt: new Date()
         }
       }
-    )
+      
+      console.log('Update query:', JSON.stringify(updateQuery, null, 2))
+      
+      const result = await checkins.updateOne(
+        { _id: new ObjectId(shiftId) },
+        updateQuery
+      )
+      
+      console.log('Update result:', {
+        matchedCount: result.matchedCount,
+        modifiedCount: result.modifiedCount,
+        acknowledged: result.acknowledged
+      })
+      
+      if (result.matchedCount === 0) {
+        console.log('WARNING: No shift found with ID:', shiftId)
+      }
+      
+      if (result.modifiedCount === 0) {
+        console.log('WARNING: Shift found but not modified')
+      }
+      
+      // Verify the update by reading the shift back
+      const updatedShift = await checkins.findOne({ _id: new ObjectId(shiftId) })
+      console.log('Updated shift photo field:', updatedShift?.[photoField] ? 'EXISTS' : 'MISSING')
+      
+      console.log('=== CHECKIN MODEL DEBUG END ===')
+      
+      return result
+    } catch (error) {
+      console.error('Error updating shift photo:', error)
+      throw error
+    }
   }
 }

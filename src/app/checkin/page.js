@@ -143,70 +143,78 @@ export default function CheckInPage() {
   }
 
   const handleStartShift = async () => {
-    if (!capturedPhoto && !uploadedPhoto) {
-      alert('Photo verification is required to start your shift!')
-      return
-    }
+  if (!capturedPhoto && !uploadedPhoto) {
+    alert('Photo verification is required to start your shift!')
+    return
+  }
 
-    setLoading(true)
-    try {
-      // First, start the shift
-      const response = await fetch('/api/checkin/start', {
+  setLoading(true)
+  try {
+    console.log('=== START SHIFT DEBUG ===')
+    console.log('Captured photo:', !!capturedPhoto)
+    console.log('Uploaded photo:', !!uploadedPhoto)
+    
+    // First, start the shift
+    const response = await fetch('/api/checkin/start', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(formData)
+    })
+
+    if (response.ok) {
+      console.log('Shift started, now uploading photo...')
+      
+      // Upload photo
+      const formDataWithPhoto = new FormData()
+      
+      if (capturedPhoto) {
+        console.log('Uploading captured photo')
+        formDataWithPhoto.append('photo', capturedPhoto, 'checkin-photo.jpg')
+      } else if (uploadedPhoto) {
+        console.log('Uploading selected photo:', uploadedPhoto.name)
+        formDataWithPhoto.append('photo', uploadedPhoto, uploadedPhoto.name)
+      }
+      
+      formDataWithPhoto.append('type', 'checkin')
+
+      console.log('Sending photo to API...')
+      const photoResponse = await fetch('/api/checkin/photo', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
+        body: formDataWithPhoto
       })
 
-      if (response.ok) {
-        console.log('Shift started, now uploading photo...')
-        
-        // Upload photo
-        const formDataWithPhoto = new FormData()
-        
-        if (capturedPhoto) {
-          formDataWithPhoto.append('photo', capturedPhoto, 'checkin-photo.jpg')
-        } else if (uploadedPhoto) {
-          formDataWithPhoto.append('photo', uploadedPhoto, uploadedPhoto.name)
-        }
-        
-        formDataWithPhoto.append('type', 'checkin')
+      const photoData = await photoResponse.json()
+      console.log('Photo upload response:', photoData)
 
-        const photoResponse = await fetch('/api/checkin/photo', {
-          method: 'POST',
-          body: formDataWithPhoto
-        })
-
-        const photoData = await photoResponse.json()
-        console.log('Photo upload response:', photoData)
-
-        if (photoResponse.ok) {
-          // Wait a moment to ensure database is updated
-          await new Promise(resolve => setTimeout(resolve, 500))
-          
-          // Force refresh the shift status
-          await loadShiftStatus()
-          
-          alert('Shift started successfully with photo verification!')
-          
-          // Use replace instead of push to avoid back button issues
-          router.replace('/dashboard')
-        } else {
-          console.error('Photo upload failed:', photoData.error)
-          alert(`Shift started but photo upload failed: ${photoData.error}`)
-          router.replace('/dashboard')
-        }
+      if (photoResponse.ok) {
+        console.log('Photo uploaded successfully')
+        // Wait a moment to ensure database is updated
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
+        // Force refresh the shift status
+        await loadShiftStatus()
+        
+        alert('Shift started successfully with photo verification!')
+        
+        // Use replace instead of push to avoid back button issues
+        router.replace('/dashboard')
       } else {
-        const data = await response.json()
-        alert(data.error || 'Failed to start shift')
+        console.error('Photo upload failed:', photoData.error)
+        alert(`Shift started but photo upload failed: ${photoData.error}`)
+        router.replace('/dashboard')
       }
-    } catch (error) {
-      console.error('Error starting shift:', error)
-      alert('Error starting shift: ' + error.message)
+    } else {
+      const data = await response.json()
+      alert(data.error || 'Failed to start shift')
     }
-    setLoading(false)
+  } catch (error) {
+    console.error('Error starting shift:', error)
+    alert('Error starting shift: ' + error.message)
   }
+  setLoading(false)
+}
 
   const handleEndShift = async () => {
     setLoading(true)
