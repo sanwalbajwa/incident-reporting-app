@@ -357,22 +357,22 @@ export default function CheckInPage() {
 
             {/* Start Button */}
             <button
-  onClick={handleStartShift}
-  disabled={loading}
-  className="w-full py-4 px-6 rounded-xl text-xl font-bold transition-all duration-200 flex items-center justify-center gap-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg transform hover:scale-105 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
->
-  {loading ? (
-    <>
-      <RefreshCw className="w-5 h-5 animate-spin" />
-      Starting Shift...
-    </>
-  ) : (
-    <>
-      <Clock className="w-5 h-5" />
-      Start Shift
-    </>
-  )}
-</button>
+              onClick={handleStartShift}
+              disabled={loading}
+              className="w-full py-4 px-6 rounded-xl text-xl font-bold transition-all duration-200 flex items-center justify-center gap-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg transform hover:scale-105 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <>
+                  <RefreshCw className="w-5 h-5 animate-spin" />
+                  Starting Shift...
+                </>
+              ) : (
+                <>
+                  <Clock className="w-5 h-5" />
+                  Start Shift
+                </>
+              )}
+            </button>
 
           </div>
         ) : (
