@@ -208,11 +208,6 @@ export default function Dashboard() {
                   <Camera className="w-6 h-6" />
                   START SHIFT
                 </button>
-                
-                <p className="text-sm text-gray-500 mt-4 flex items-center justify-center gap-2">
-                  <AlertTriangle className="w-4 h-4" />
-                  Photo required to start shift
-                </p>
               </div>
             </div>
           )}

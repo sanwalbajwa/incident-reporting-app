@@ -16,7 +16,8 @@ import {
   FileText,
   AlertCircle,
   CheckCircle,
-  Clock
+  Clock,
+  RefreshCw
 } from 'lucide-react'
 
 export default function CheckInPage() {
@@ -24,7 +25,6 @@ export default function CheckInPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [activeShift, setActiveShift] = useState(null)
-  const [showCamera, setShowCamera] = useState(false)
   const [capturedPhoto, setCapturedPhoto] = useState(null)
   const [uploadedPhoto, setUploadedPhoto] = useState(null)
   const [photoMethod, setPhotoMethod] = useState('') // 'camera' or 'upload'
@@ -143,11 +143,6 @@ export default function CheckInPage() {
   }
 
   const handleStartShift = async () => {
-  if (!capturedPhoto && !uploadedPhoto) {
-    alert('Photo verification is required to start your shift!')
-    return
-  }
-
   setLoading(true)
   try {
     console.log('=== START SHIFT DEBUG ===')
@@ -164,47 +159,34 @@ export default function CheckInPage() {
     })
 
     if (response.ok) {
-      console.log('Shift started, now uploading photo...')
-      
-      // Upload photo
-      const formDataWithPhoto = new FormData()
-      
-      if (capturedPhoto) {
-        console.log('Uploading captured photo')
-        formDataWithPhoto.append('photo', capturedPhoto, 'checkin-photo.jpg')
-      } else if (uploadedPhoto) {
-        console.log('Uploading selected photo:', uploadedPhoto.name)
-        formDataWithPhoto.append('photo', uploadedPhoto, uploadedPhoto.name)
+      // Proceed with optional photo upload
+      if (capturedPhoto || uploadedPhoto) {
+        const formDataWithPhoto = new FormData()
+        if (capturedPhoto) {
+          formDataWithPhoto.append('photo', capturedPhoto, 'checkin-photo.jpg')
+        } else if (uploadedPhoto) {
+          formDataWithPhoto.append('photo', uploadedPhoto, uploadedPhoto.name)
+        }
+
+        formDataWithPhoto.append('type', 'checkin')
+
+        const photoResponse = await fetch('/api/checkin/photo', {
+          method: 'POST',
+          body: formDataWithPhoto
+        })
+
+        const photoData = await photoResponse.json()
+
+        if (!photoResponse.ok) {
+          console.error('Photo upload failed:', photoData.error)
+          alert(`Shift started, but photo upload failed: ${photoData.error}`)
+        }
       }
-      
-      formDataWithPhoto.append('type', 'checkin')
 
-      console.log('Sending photo to API...')
-      const photoResponse = await fetch('/api/checkin/photo', {
-        method: 'POST',
-        body: formDataWithPhoto
-      })
-
-      const photoData = await photoResponse.json()
-      console.log('Photo upload response:', photoData)
-
-      if (photoResponse.ok) {
-        console.log('Photo uploaded successfully')
-        // Wait a moment to ensure database is updated
-        await new Promise(resolve => setTimeout(resolve, 500))
-        
-        // Force refresh the shift status
-        await loadShiftStatus()
-        
-        alert('Shift started successfully with photo verification!')
-        
-        // Use replace instead of push to avoid back button issues
-        router.replace('/dashboard')
-      } else {
-        console.error('Photo upload failed:', photoData.error)
-        alert(`Shift started but photo upload failed: ${photoData.error}`)
-        router.replace('/dashboard')
-      }
+      await new Promise(resolve => setTimeout(resolve, 500))
+      await loadShiftStatus()
+      alert('Shift started successfully!')
+      router.replace('/dashboard')
     } else {
       const data = await response.json()
       alert(data.error || 'Failed to start shift')
@@ -287,146 +269,48 @@ export default function CheckInPage() {
             <div className="mb-8">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <Camera className="w-5 h-5 text-blue-600" />
-                Photo Verification
-                <span className="text-red-500">*</span>
+                Photo Verification <span className="text-gray-400 text-sm">(Optional)</span>
               </h3>
-              
-              {!showCamera && !capturedPhoto && !uploadedPhoto && (
-                <div className="border-2 border-dashed border-gray-300 rounded-2xl p-8 bg-gray-50/50">
-                  <div className="text-center mb-6">
-                    <Camera className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600 mb-6 font-medium">Choose how you want to provide your photo:</p>
-                  </div>
-                  
-                  {/* Photo Options */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Take Photo Option */}
-                    <button
-                      onClick={startCamera}
-                      className="flex flex-col items-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200 hover:from-blue-100 hover:to-blue-200 transition-all duration-200 group"
-                    >
-                      <Camera className="w-8 h-8 text-blue-600 mb-3 group-hover:scale-110 transition-transform" />
-                      <span className="font-bold text-blue-900">Take Photo</span>
-                      <span className="text-sm text-blue-700 mt-1">Use your camera</span>
-                    </button>
-                    
-                    {/* Upload Photo Option */}
+
+              {!uploadedPhoto && (
+                <div className="border-2 border-dashed border-gray-300 rounded-2xl p-8 bg-gray-50/50 text-center">
+                  <Upload className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-6 font-medium">Upload a photo for verification (optional)</p>
+
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="inline-flex items-center px-6 py-3 bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-xl hover:from-green-100 hover:to-green-200 transition-all duration-200 gap-2 font-bold text-green-800"
+                  >
+                    <Upload className="w-5 h-5" />
+                    Upload Photo
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                  </button>
+
+                  <p className="text-xs text-gray-500 mt-4">Supported formats: JPG, PNG, GIF • Max size: 5MB</p>
+                </div>
+              )}
+
+              {uploadedPhoto && (
+                <div className="text-center bg-green-50 rounded-2xl p-6 border border-green-200">
+                  <img
+                    src={URL.createObjectURL(uploadedPhoto)}
+                    alt="Uploaded verification photo"
+                    className="w-full max-w-md mx-auto rounded-xl border-4 border-green-200 shadow-lg"
+                  />
+                  <div className="mt-4 flex justify-center gap-3">
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="flex flex-col items-center p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200 hover:from-green-100 hover:to-green-200 transition-all duration-200 group"
+                      className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl font-medium transition-colors flex items-center gap-2"
                     >
-                      <Upload className="w-8 h-8 text-green-600 mb-3 group-hover:scale-110 transition-transform" />
-                      <span className="font-bold text-green-900">Upload Photo</span>
-                      <span className="text-sm text-green-700 mt-1">Choose from gallery</span>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        onChange={handleFileUpload}
-                        className="hidden"
-                      />
+                      <RotateCcw className="w-4 h-4" />
+                      Choose Different
                     </button>
-                  </div>
-                  
-                  <div className="mt-4 text-center">
-                    <p className="text-xs text-gray-500">
-                      Supported formats: JPG, PNG, GIF • Max size: 5MB
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Camera View */}
-              {showCamera && (
-                <div className="text-center bg-gray-900 rounded-2xl p-4">
-                  <div className="relative inline-block">
-                    <video
-                      ref={videoRef}
-                      autoPlay
-                      playsInline
-                      className="w-full max-w-md mx-auto rounded-xl border-4 border-white shadow-lg"
-                    />
-                    <div className="absolute top-4 left-4 bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1">
-                      <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                      Live
-                    </div>
-                  </div>
-                  <div className="mt-6 flex justify-center gap-4">
-                    <button
-                      onClick={capturePhoto}
-                      className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-8 py-3 rounded-xl font-bold transition-all duration-200 flex items-center gap-2"
-                    >
-                      <Camera className="w-5 h-5" />
-                      Capture Photo
-                    </button>
-                    <button
-                      onClick={() => {
-                        const stream = videoRef.current?.srcObject
-                        if (stream) {
-                          stream.getTracks().forEach(track => track.stop())
-                        }
-                        setShowCamera(false)
-                      }}
-                      className="bg-gray-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-gray-700 transition-colors flex items-center gap-2"
-                    >
-                      <X className="w-5 h-5" />
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Photo Preview */}
-              {(capturedPhoto || uploadedPhoto) && (
-                <div className="text-center bg-green-50 rounded-2xl p-6 border border-green-200">
-                  <div className="relative inline-block">
-                    {capturedPhoto && (
-                      <canvas 
-                        ref={canvasRef} 
-                        className="w-full max-w-md mx-auto rounded-xl border-4 border-green-200 shadow-lg" 
-                      />
-                    )}
-                    {uploadedPhoto && (
-                      <div className="w-full max-w-md mx-auto">
-                        <img
-                          src={URL.createObjectURL(uploadedPhoto)}
-                          alt="Uploaded verification photo"
-                          className="w-full rounded-xl border-4 border-green-200 shadow-lg"
-                        />
-                      </div>
-                    )}
-                    <div className="absolute top-4 right-4 bg-green-600 text-white px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1">
-                      <CheckCircle className="w-4 h-4" />
-                      Ready
-                    </div>
-                  </div>
-                  
-                  <div className="mt-6">
-                    <div className="inline-flex items-center gap-2 text-green-700 font-bold text-lg bg-green-100 px-4 py-2 rounded-xl">
-                      <CheckCircle className="w-5 h-5" />
-                      Photo Verification Complete
-                    </div>
-                  </div>
-                  
-                  <div className="mt-4 flex justify-center gap-3">
-                    {capturedPhoto && (
-                      <button
-                        onClick={retakePhoto}
-                        className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl font-medium transition-colors flex items-center gap-2"
-                      >
-                        <RotateCcw className="w-4 h-4" />
-                        Retake
-                      </button>
-                    )}
-                    {uploadedPhoto && (
-                      <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl font-medium transition-colors flex items-center gap-2"
-                      >
-                        <RotateCcw className="w-4 h-4" />
-                        Choose Different
-                      </button>
-                    )}
                     <button
                       onClick={removePhoto}
                       className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl font-medium transition-colors flex items-center gap-2"
@@ -438,6 +322,7 @@ export default function CheckInPage() {
                 </div>
               )}
             </div>
+
 
             {/* Additional Information */}
             <div className="space-y-6 mb-8">
@@ -472,33 +357,23 @@ export default function CheckInPage() {
 
             {/* Start Button */}
             <button
-              onClick={handleStartShift}
-              disabled={loading || (!capturedPhoto && !uploadedPhoto)}
-              className={`w-full py-4 px-6 rounded-xl text-xl font-bold transition-all duration-200 flex items-center justify-center gap-3 ${
-                (capturedPhoto || uploadedPhoto)
-                  ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg transform hover:scale-105' 
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              }`}
-            >
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent"></div>
-                  Starting Shift...
-                </>
-              ) : (
-                <>
-                  <Play className="w-6 h-6" />
-                  START SHIFT
-                </>
-              )}
-            </button>
-            
-            {!capturedPhoto && !uploadedPhoto && (
-              <div className="flex items-center justify-center gap-2 text-red-600 text-sm mt-3 bg-red-50 rounded-xl py-2 px-4">
-                <AlertCircle className="w-4 h-4" />
-                Photo verification is required to start your shift
-              </div>
-            )}
+  onClick={handleStartShift}
+  disabled={loading}
+  className="w-full py-4 px-6 rounded-xl text-xl font-bold transition-all duration-200 flex items-center justify-center gap-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg transform hover:scale-105 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
+>
+  {loading ? (
+    <>
+      <RefreshCw className="w-5 h-5 animate-spin" />
+      Starting Shift...
+    </>
+  ) : (
+    <>
+      <Clock className="w-5 h-5" />
+      Start Shift
+    </>
+  )}
+</button>
+
           </div>
         ) : (
           // END SHIFT
