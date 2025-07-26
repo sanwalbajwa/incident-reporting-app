@@ -2,6 +2,7 @@
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useState } from 'react'
+import Image from 'next/image'
 import { 
   Home, 
   FileText, 
@@ -178,25 +179,29 @@ export default function Header() {
   const navigationItems = getNavigationItems()
 
   return (
-    <header className="bg-white shadow-lg border-b sticky top-0 z-50 backdrop-blur-md bg-white/95">
+    <header className="bg-white shadow-lg border-b sticky top-0 z-50 backdrop-blur-md bg-white/95 py-4">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           
           {/* Logo and Brand */}
-          <div className="flex items-center">
-            <button
-              onClick={() => router.push(getDashboardUrl())}
-              className="flex items-center space-x-4 hover:opacity-80 transition-all duration-200 group"
-            >
-              <div className="relative">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 via-purple-600 to-blue-800 rounded-xl flex items-center justify-center shadow-lg transform group-hover:scale-105 transition-transform duration-200">
-                  <span className="text-white font-bold text-lg">IR</span>
-                </div>
-                <div className="absolute -inset-1 bg-gradient-to-br from-blue-600 via-purple-600 to-blue-800 rounded-xl opacity-20 blur-sm"></div>
-              </div>
+          <div className="flex items-center py-4"> {/* Increased top & bottom padding */}
+          <button
+            onClick={() => router.push(getDashboardUrl())}
+            className="flex items-center space-x-4 hover:opacity-80 transition-all duration-200 group"
+          >
+            {/* Circular Logo */}
+            <div className="w-24 h-24 relative rounded-full overflow-hidden transform group-hover:scale-105 transition-transform duration-200">
+              <Image
+                src="/smile-4-life.png"
+                alt="IRPA Logo"
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
               <div>
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900 bg-clip-text text-transparent">
-                  IRPA System
+                  Smile 4 Life
                 </h1>
               </div>
             </button>
