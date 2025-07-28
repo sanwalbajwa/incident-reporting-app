@@ -117,7 +117,7 @@ export default function Header() {
       // Supervisor-specific navigation
       items.push(
         {
-          name: 'Manage Guards',
+          name: 'Guards',
           href: '/supervisor/guards',
           icon: Users,
           active: pathname.startsWith('/supervisor/guards')

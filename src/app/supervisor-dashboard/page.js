@@ -20,7 +20,12 @@ import {
   TrendingUp,
   BarChart3,
   Bell,
-  Archive
+  Archive,
+  User,
+  Building2,
+  FileText,
+  Search,
+  ExternalLink
 } from 'lucide-react'
 
 export default function SupervisorDashboard() {
@@ -35,6 +40,7 @@ export default function SupervisorDashboard() {
     urgentMessages: 0
   })
   const [activeFilter, setActiveFilter] = useState('all')
+  const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
     if (status === 'loading') return // Still loading
@@ -54,9 +60,12 @@ export default function SupervisorDashboard() {
   }, [session, status, router])
 
   const loadMessages = async () => {
+    setLoading(true)
     try {
-      const response = await fetch('/api/supervisor/messages?limit=10')
+      const response = await fetch('/api/supervisor/messages?limit=50')
       const data = await response.json()
+      
+      console.log('Supervisor messages response:', data)
       
       if (response.ok) {
         setMessages(data.messages || [])
@@ -75,10 +84,13 @@ export default function SupervisorDashboard() {
             m.priority === 'urgent' || m.priority === 'critical'
           ).length
         })
+      } else {
+        console.error('Error loading messages:', data.error)
       }
     } catch (error) {
       console.error('Error loading messages:', error)
     }
+    setLoading(false)
   }
 
   const markAsRead = async (messageId) => {
@@ -105,6 +117,21 @@ export default function SupervisorDashboard() {
 
   const formatDate = (date) => {
     return new Date(date).toLocaleString()
+  }
+
+  const getRelativeTime = (date) => {
+    const now = new Date()
+    const messageDate = new Date(date)
+    const diffMs = now - messageDate
+    const diffMins = Math.floor(diffMs / (1000 * 60))
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+    if (diffMins < 1) return 'Just now'
+    if (diffMins < 60) return `${diffMins}m ago`
+    if (diffHours < 24) return `${diffHours}h ago`
+    if (diffDays < 7) return `${diffDays}d ago`
+    return messageDate.toLocaleDateString()
   }
 
   const getPriorityColor = (priority) => {
@@ -139,19 +166,48 @@ export default function SupervisorDashboard() {
     )
   }
 
+  const getMessageTypeLabel = (messageType) => {
+    return messageType === 'communication' ? 'Message' : 'Incident'
+  }
+
+  // Filter and search messages
   const filteredMessages = messages.filter(message => {
+    // Apply active filter
+    let passesFilter = true
     switch (activeFilter) {
       case 'unread':
-        return !message.readAt
+        passesFilter = !message.readAt
+        break
       case 'urgent':
-        return message.priority === 'urgent' || message.priority === 'critical'
+        passesFilter = message.priority === 'urgent' || message.priority === 'critical'
+        break
       case 'communications':
-        return message.messageType === 'communication'
+        passesFilter = message.messageType === 'communication'
+        break
       case 'incidents':
-        return message.messageType === 'incident'
+        passesFilter = message.messageType === 'incident'
+        break
+      case 'today':
+        passesFilter = new Date(message.createdAt).toDateString() === new Date().toDateString()
+        break
       default:
-        return true
+        passesFilter = true
     }
+
+    // Apply search term
+    if (searchTerm && passesFilter) {
+      const searchLower = searchTerm.toLowerCase()
+      passesFilter = (
+        message.incidentType?.toLowerCase().includes(searchLower) ||
+        message.guardName?.toLowerCase().includes(searchLower) ||
+        message.guardEmail?.toLowerCase().includes(searchLower) ||
+        message.location?.toLowerCase().includes(searchLower) ||
+        message.description?.toLowerCase().includes(searchLower) ||
+        message.incidentId?.toLowerCase().includes(searchLower)
+      )
+    }
+
+    return passesFilter
   })
 
   if (status === 'loading' || loading) {
@@ -182,7 +238,29 @@ export default function SupervisorDashboard() {
                 Supervisor Dashboard
               </h1>
               <p className="text-gray-600 mt-1">Welcome back, {session.user.name?.split(' ')[0]}</p>
+              <p className="text-sm text-purple-600 font-medium">
+                Viewing reports sent to you as Security Supervisor
+              </p>
             </div>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            {/* <button
+              onClick={loadMessages}
+              disabled={loading}
+              className="flex items-center gap-2 bg-purple-500 hover:bg-purple-600 disabled:bg-purple-300 text-white px-4 py-2 rounded-xl font-medium transition-colors"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button> */}
+            
+            <button
+              onClick={() => router.push('/supervisor/guards')}
+              className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl font-medium transition-colors"
+            >
+              <Users className="w-4 h-4" />
+              Manage Guards
+            </button>
           </div>
         </div>
 
@@ -193,7 +271,7 @@ export default function SupervisorDashboard() {
               <Mail className="w-6 h-6 text-white" />
             </div>
             <div className="text-2xl font-bold text-blue-600">{stats.totalMessages}</div>
-            <div className="text-sm text-gray-600 font-medium">Total Messages</div>
+            <div className="text-sm text-gray-600 font-medium">Total Reports</div>
           </div>
 
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6 text-center">
@@ -221,72 +299,62 @@ export default function SupervisorDashboard() {
           </div>
         </div>
 
-        {/* Filter Buttons */}
+        {/* Search and Filter Controls */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2 text-gray-700 font-medium">
-              <Filter className="w-5 h-5" />
-              Filter messages:
+          <div className="flex flex-col lg:flex-row gap-4">
+            {/* Search */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="Search by guard name, incident type, location, or description..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white/50"
+              />
             </div>
-            <button
-              onClick={() => setActiveFilter('all')}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                activeFilter === 'all' 
-                  ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              All ({messages.length})
-            </button>
-            <button
-              onClick={() => setActiveFilter('unread')}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                activeFilter === 'unread' 
-                  ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Unread ({stats.unreadMessages})
-            </button>
-            <button
-              onClick={() => setActiveFilter('urgent')}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                activeFilter === 'urgent' 
-                  ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Urgent ({stats.urgentMessages})
-            </button>
-            <button
-              onClick={() => setActiveFilter('communications')}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                activeFilter === 'communications' 
-                  ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Communications
-            </button>
-            <button
-              onClick={() => setActiveFilter('incidents')}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                activeFilter === 'incidents' 
-                  ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Incidents
-            </button>
+            
+            {/* Filter Buttons */}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2 text-gray-700 font-medium">
+                <Filter className="w-5 h-5" />
+                <span className="hidden sm:inline">Filter:</span>
+              </div>
+              {[
+                { key: 'all', label: `All (${messages.length})`, count: messages.length },
+                { key: 'unread', label: `Unread (${stats.unreadMessages})`, count: stats.unreadMessages },
+                { key: 'urgent', label: `Urgent (${stats.urgentMessages})`, count: stats.urgentMessages },
+                { key: 'today', label: `Today (${stats.todayMessages})`, count: stats.todayMessages },
+                { key: 'communications', label: 'Messages', count: messages.filter(m => m.messageType === 'communication').length },
+                { key: 'incidents', label: 'Incidents', count: messages.filter(m => m.messageType === 'incident').length }
+              ].map(filter => (
+                <button
+                  key={filter.key}
+                  onClick={() => setActiveFilter(filter.key)}
+                  className={`px-3 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                    activeFilter === filter.key 
+                      ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {filter.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Recent Messages */}
+        {/* Messages List */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-slate-50">
             <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
               <BarChart3 className="w-6 h-6 text-purple-600" />
-              Messages & Reports ({filteredMessages.length})
+              Reports Sent to You ({filteredMessages.length})
+              {searchTerm && (
+                <span className="text-sm font-normal text-gray-600">
+                  - Search: "{searchTerm}"
+                </span>
+              )}
             </h2>
           </div>
 
@@ -301,6 +369,7 @@ export default function SupervisorDashboard() {
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
+                      {/* Header with type, priority, and status */}
                       <div className="flex items-center space-x-3 mb-3">
                         {getMessageTypeIcon(message.messageType)}
                         <h3 className="text-lg font-bold text-gray-900">
@@ -310,21 +379,36 @@ export default function SupervisorDashboard() {
                           {getPriorityIcon(message.priority)}
                           {message.priority || 'normal'}
                         </span>
+                        <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-xs font-bold border border-purple-200">
+                          {getMessageTypeLabel(message.messageType)}
+                        </span>
                         {!message.readAt && (
-                          <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold">
+                          <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold animate-pulse">
                             NEW
                           </span>
                         )}
                       </div>
                       
+                      {/* Incident ID */}
+                      <div className="mb-3">
+                        <span className="text-sm font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-lg border border-blue-200">
+                          ID: {message.incidentId}
+                        </span>
+                      </div>
+                      
+                      {/* Details grid */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600 mb-4">
                         <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4" />
-                          <span className="font-medium">From:</span> {message.guardName} ({message.guardEmail})
+                          <User className="w-4 h-4" />
+                          <span className="font-medium">From:</span> {message.guardName}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Mail className="w-4 h-4" />
+                          <span className="font-medium">Email:</span> {message.guardEmail}
                         </div>
                         {message.client && (
                           <div className="flex items-center gap-2">
-                            <Shield className="w-4 h-4" />
+                            <Building2 className="w-4 h-4" />
                             <span className="font-medium">Property:</span> {message.client.name}
                           </div>
                         )}
@@ -334,10 +418,15 @@ export default function SupervisorDashboard() {
                         </div>
                         <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4" />
-                          <span className="font-medium">Time:</span> {formatDate(message.createdAt)}
+                          <span className="font-medium">Reported:</span> {getRelativeTime(message.createdAt)}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4" />
+                          <span className="font-medium">Full Date:</span> {formatDate(message.createdAt)}
                         </div>
                       </div>
                       
+                      {/* Description preview */}
                       <div className="bg-gray-50 rounded-xl p-4 mb-4">
                         <p className="text-gray-900 leading-relaxed">
                           {message.description.length > 200 
@@ -347,6 +436,7 @@ export default function SupervisorDashboard() {
                         </p>
                       </div>
                       
+                      {/* Attachments indicator */}
                       {message.attachments && message.attachments.length > 0 && (
                         <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 rounded-lg py-2 px-3 mb-4">
                           <Paperclip className="w-4 h-4" />
@@ -355,10 +445,11 @@ export default function SupervisorDashboard() {
                       )}
                     </div>
                     
+                    {/* Action buttons */}
                     <div className="flex flex-col space-y-2 ml-6">
                       <button
                         onClick={() => router.push(`/incidents/${message._id}`)}
-                        className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                        className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 whitespace-nowrap"
                       >
                         <Eye className="w-4 h-4" />
                         View Details
@@ -366,7 +457,7 @@ export default function SupervisorDashboard() {
                       {!message.readAt && (
                         <button
                           onClick={() => markAsRead(message._id)}
-                          className="bg-green-100 hover:bg-green-200 text-green-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                          className="bg-green-100 hover:bg-green-200 text-green-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 whitespace-nowrap"
                         >
                           <CheckCircle className="w-4 h-4" />
                           Mark Read
@@ -382,13 +473,24 @@ export default function SupervisorDashboard() {
               <div className="w-20 h-20 bg-gradient-to-br from-gray-300 to-gray-400 rounded-2xl flex items-center justify-center mx-auto mb-6">
                 <Archive className="w-10 h-10 text-gray-600" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">No messages found</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-4">No reports found</h3>
               <p className="text-gray-600 text-lg">
-                {activeFilter === 'all' 
-                  ? "No messages or incident reports from guards yet."
-                  : `No messages found for the "${activeFilter}" filter.`
+                {searchTerm || activeFilter !== 'all'
+                  ? `No reports match your current ${searchTerm ? 'search' : 'filter'} criteria.`
+                  : "No reports have been sent to you yet."
                 }
               </p>
+              {(searchTerm || activeFilter !== 'all') && (
+                <button
+                  onClick={() => {
+                    setSearchTerm('')
+                    setActiveFilter('all')
+                  }}
+                  className="mt-4 bg-purple-500 hover:bg-purple-600 text-white px-6 py-3 rounded-xl font-medium transition-colors"
+                >
+                  Clear Filters
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -398,7 +500,7 @@ export default function SupervisorDashboard() {
           <TrendingUp className="w-12 h-12 mx-auto mb-4 opacity-90" />
           <h3 className="text-2xl font-bold mb-2">Supervision Overview</h3>
           <p className="text-lg opacity-90 mb-4">
-            Managing {stats.totalMessages} total messages from security team
+            You have {stats.totalMessages} total reports from your security team
           </p>
           <div className="flex flex-wrap justify-center gap-6 text-sm">
             <div className="flex items-center gap-2">
