@@ -3,6 +3,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import clientPromise from '@/lib/mongodb'
+import { ObjectId } from 'mongodb'
 
 // GET all supervisors for management
 export async function GET() {
@@ -62,6 +63,7 @@ export async function GET() {
     )
   }
 }
+
 // DELETE - Remove supervisor (soft delete)
 export async function DELETE(request) {
   try {
@@ -86,15 +88,19 @@ export async function DELETE(request) {
     const db = client.db('incident-reporting-db')
     const users = db.collection('users')
     
-    // Verify supervisor exists
+    // Verify supervisor exists and has the correct role
     const supervisor = await users.findOne({
       _id: new ObjectId(supervisorId),
-      role: 'security_supervisor'
+      role: 'security_supervisor',
+      isActive: true
     })
     
     if (!supervisor) {
-      return Response.json({ error: 'Supervisor not found' }, { status: 404 })
+      return Response.json({ error: 'Supervisor not found or already inactive' }, { status: 404 })
     }
+    
+    // Optional: Check if supervisor has any active managed incidents or guards
+    // You could add business logic here to prevent deletion if supervisor is actively managing things
     
     // Soft delete - set isActive to false
     const result = await users.updateOne(
@@ -110,12 +116,23 @@ export async function DELETE(request) {
       }
     )
     
+    if (result.matchedCount === 0) {
+      return Response.json({ error: 'Supervisor not found' }, { status: 404 })
+    }
+    
+    if (result.modifiedCount === 0) {
+      return Response.json({ error: 'Failed to delete supervisor' }, { status: 500 })
+    }
+    
     return Response.json({
       message: 'Supervisor deleted successfully'
     })
     
   } catch (error) {
     console.error('Delete supervisor error:', error)
-    return Response.json({ error: 'Failed to delete supervisor' }, { status: 500 })
+    return Response.json({ 
+      error: 'Failed to delete supervisor',
+      details: error.message 
+    }, { status: 500 })
   }
 }
