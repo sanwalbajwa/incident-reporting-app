@@ -123,15 +123,15 @@ export default function ClientsPage() {
   const getPropertyTypeIcon = (type) => {
     switch (type) {
       case 'Residential':
-        return <Home className="w-5 h-5  text-blue-600" />
+        return <Home className="w-6 h-6" />
       case 'Commercial':
-        return <Building className="w-5 h-5 text-green-600" />
+        return <Building className="w-6 h-6" />
       case 'Industrial':
-        return <Factory className="w-5 h-5 text-orange-600" />
+        return <Factory className="w-6 h-6" />
       case 'Mixed Use':
-        return <Layers className="w-5 h-5 text-purple-600" />
+        return <Layers className="w-6 h-6" />
       default:
-        return <Building2 className="w-5 h-5 text-gray-600" />
+        return <Building2 className="w-6 h-6" />
     }
   }
 
@@ -290,25 +290,57 @@ export default function ClientsPage() {
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl  shadow-lg border border-white/20 p-6 text-center">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6 text-center">
             <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-3">
               <Building2 className="w-6 h-6 text-white" />
             </div>
             <div className="text-2xl font-bold text-blue-600">{clients.length}</div>
             <div className="text-sm text-gray-600 font-medium">Total Clients</div>
           </div>
-  
-          
-          {typeStats.map(({ type, count }) => (
-            <div key={type} className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6 text-center">
-              <div className="w-12 h-12 bg-gradient-to-br from-gray-400 to-gray-500 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                {getPropertyTypeIcon(type)}
+
+          {typeStats.map(({ type, count }) => {
+            const getTypeBackground = (propertyType) => {
+              switch (propertyType) {
+                case 'Residential':
+                  return 'bg-gradient-to-br from-blue-500 to-blue-600'
+                case 'Commercial':
+                  return 'bg-gradient-to-br from-green-500 to-green-600'
+                case 'Industrial':
+                  return 'bg-gradient-to-br from-orange-500 to-orange-600'
+                case 'Mixed Use':
+                  return 'bg-gradient-to-br from-purple-500 to-purple-600'
+                default:
+                  return 'bg-gradient-to-br from-gray-500 to-gray-600'
+              }
+            }
+
+            const getTypeTextColor = (propertyType) => {
+              switch (propertyType) {
+                case 'Residential':
+                  return 'text-blue-700'
+                case 'Commercial':
+                  return 'text-green-700'
+                case 'Industrial':
+                  return 'text-orange-700'
+                case 'Mixed Use':
+                  return 'text-purple-700'
+                default:
+                  return 'text-gray-700'
+              }
+            }
+
+            return (
+              <div key={type} className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6 text-center">
+                <div className={`w-12 h-12 ${getTypeBackground(type)} rounded-2xl flex items-center justify-center mx-auto mb-3`}>
+                  <div className="text-white">
+                    {getPropertyTypeIcon(type)}
+                  </div>
+                </div>
+                <div className={`text-2xl font-bold ${getTypeTextColor(type)}`}>{count}</div>
+                <div className="text-sm text-gray-600 font-medium">{type}</div>
               </div>
- 
-               <div className="text-2xl font-bold text-gray-700">{count}</div>
-              <div className="text-sm text-gray-600 font-medium">{type}</div>
-            </div>
-          ))}
+            )
+          })}
         </div>
 
         {/* Add Client Form Modal */}

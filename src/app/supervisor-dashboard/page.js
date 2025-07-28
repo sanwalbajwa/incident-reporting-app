@@ -20,11 +20,7 @@ import {
   TrendingUp,
   BarChart3,
   Bell,
-  Archive,
-  Settings,
-  UserCog,
-  Play,
-  Square
+  Archive
 } from 'lucide-react'
 
 export default function SupervisorDashboard() {
@@ -190,63 +186,6 @@ export default function SupervisorDashboard() {
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 group">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="p-3 bg-purple-100 rounded-2xl group-hover:bg-purple-200 transition-colors duration-200">
-                <Users className="w-8 h-8 text-purple-600" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-900">Manage Guards</h3>
-                <p className="text-gray-600">Control guard shifts and status</p>
-              </div>
-            </div>
-            <button 
-              onClick={() => router.push('/supervisor/guards')}
-              className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-3 px-6 rounded-xl font-bold transition-all duration-200 flex items-center justify-center gap-2"
-            >
-              <UserCog className="w-5 h-5" />
-              Manage Guards
-            </button>
-          </div>
-
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 group">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="p-3 bg-blue-100 rounded-2xl group-hover:bg-blue-200 transition-colors duration-200">
-                <MessageCircle className="w-8 h-8 text-blue-600" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-900">Messages</h3>
-                <p className="text-gray-600">Review guard reports and messages</p>
-              </div>
-            </div>
-            <div className="flex items-center justify-between text-sm text-blue-600 bg-blue-50 rounded-lg py-2 px-3">
-              <span>{stats.unreadMessages} Unread</span>
-              <span>{stats.urgentMessages} Urgent</span>
-            </div>
-          </div>
-
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 group">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="p-3 bg-green-100 rounded-2xl group-hover:bg-green-200 transition-colors duration-200">
-                <Settings className="w-8 h-8 text-green-600" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-900">Clients</h3>
-                <p className="text-gray-600">Manage client properties</p>
-              </div>
-            </div>
-            <button 
-              onClick={() => router.push('/clients')}
-              className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-3 px-6 rounded-xl font-bold transition-all duration-200 flex items-center justify-center gap-2"
-            >
-              <Settings className="w-5 h-5" />
-              Manage Clients
-            </button>
-          </div>
-        </div>
-
         {/* Stats Overview */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6 text-center">
@@ -353,7 +292,7 @@ export default function SupervisorDashboard() {
 
           {filteredMessages.length > 0 ? (
             <div className="divide-y divide-gray-100">
-              {filteredMessages.slice(0, 5).map((message) => (
+              {filteredMessages.map((message) => (
                 <div 
                   key={message._id} 
                   className={`p-6 hover:bg-gray-50 transition-colors ${
