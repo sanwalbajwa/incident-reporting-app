@@ -33,8 +33,6 @@ export default function Header() {
   const mobileMenuRef = useRef(null)
   const userMenuRef = useRef(null)
 
-  if (!session) return null
-
   // Close menus when route changes
   useEffect(() => {
     setShowMobileMenu(false)
@@ -57,7 +55,7 @@ export default function Header() {
       return () => document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [showMobileMenu, showUserMenu])
-
+  if (!session) return null
   // Get role-specific dashboard URL
   const getDashboardUrl = () => {
     switch (session.user.role) {
