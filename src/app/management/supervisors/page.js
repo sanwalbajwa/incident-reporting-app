@@ -211,15 +211,6 @@ export default function ManagementSupervisorsPage() {
               <p className="text-gray-600 mt-1">Manage security supervisors and their activities</p>
             </div>
           </div>
-          
-          <button
-            onClick={loadSupervisors}
-            disabled={loading}
-            className="flex items-center gap-2 bg-purple-500 hover:bg-purple-600 disabled:bg-purple-300 text-white px-4 py-2 rounded-xl font-medium transition-colors"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
         </div>
 
         {/* Stats Cards */}

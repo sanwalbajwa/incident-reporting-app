@@ -187,15 +187,6 @@ export default function ManagementReportsPage() {
               <p className="text-gray-600 mt-1">View and manage all incident reports across the system</p>
             </div>
           </div>
-          
-          <button
-            onClick={loadAllIncidents}
-            disabled={loading}
-            className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white px-4 py-2 rounded-xl font-medium transition-colors"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
         </div>
 
         {/* Stats Overview */}

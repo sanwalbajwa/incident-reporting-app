@@ -216,15 +216,6 @@ export default function ManagementGuardsPage() {
               <p className="text-gray-600 mt-1">Manage all security guards and their shifts</p>
             </div>
           </div>
-          
-          <button
-            onClick={loadGuards}
-            disabled={loading}
-            className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white px-4 py-2 rounded-xl font-medium transition-colors"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
         </div>
 
         {/* Stats Cards */}

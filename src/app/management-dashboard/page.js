@@ -1,4 +1,4 @@
-// src/app/management-dashboard/page.js
+// src/app/management-dashboard/page.js - Updated with realistic data
 
 'use client'
 import { useSession } from 'next-auth/react'
@@ -19,23 +19,40 @@ import {
   Settings,
   Eye,
   FileText,
-  Mail
+  Mail,
+  RefreshCw,
+  Activity,
+  Star,
+  Timer
 } from 'lucide-react'
 
 export default function ManagementDashboard() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [loading, setLoading] = useState(true)
+  const [statsLoading, setStatsLoading] = useState(false)
   const [stats, setStats] = useState({
     totalGuards: 0,
     onDutyGuards: 0,
+    offDutyGuards: 0,
     totalSupervisors: 0,
     totalClients: 0,
     totalIncidents: 0,
     urgentIncidents: 0,
     todayIncidents: 0,
-    resolvedIncidents: 0
+    weeklyIncidents: 0,
+    resolvedIncidents: 0,
+    pendingIncidents: 0,
+    communicationMessages: 0,
+    responseRate: 0,
+    avgShiftDuration: 0,
+    shiftsThisWeek: 0,
+    recentActivity: [],
+    guardPerformance: [],
+    incidentTypes: [],
+    activeShiftsDetails: []
   })
+  const [lastUpdated, setLastUpdated] = useState(null)
 
   useEffect(() => {
     if (status === 'loading') return
@@ -52,24 +69,71 @@ export default function ManagementDashboard() {
     
     loadDashboardStats()
     setLoading(false)
+    
+    // Auto-refresh every 5 minutes
+    const interval = setInterval(loadDashboardStats, 5 * 60 * 1000)
+    return () => clearInterval(interval)
   }, [session, status, router])
 
   const loadDashboardStats = async () => {
+    setStatsLoading(true)
     try {
-      // You can create a specific API for dashboard stats
-      // For now, we'll use placeholder data
-      setStats({
-        totalGuards: 12,
-        onDutyGuards: 8,
-        totalSupervisors: 3,
-        totalClients: 25,
-        totalIncidents: 145,
-        urgentIncidents: 5,
-        todayIncidents: 8,
-        resolvedIncidents: 132
-      })
+      const response = await fetch('/api/management/stats')
+      const data = await response.json()
+      
+      if (data.success) {
+        setStats(data.stats)
+        setLastUpdated(new Date(data.lastUpdated))
+      } else {
+        console.error('Failed to load stats:', data.error)
+        // Keep existing stats on error
+      }
     } catch (error) {
       console.error('Error loading dashboard stats:', error)
+      // Keep existing stats on error
+    }
+    setStatsLoading(false)
+  }
+
+  const formatTime = (date) => {
+    return new Date(date).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
+  const formatDate = (date) => {
+    return new Date(date).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric'
+    })
+  }
+
+  const getShiftDuration = (checkInTime) => {
+    const now = new Date()
+    const checkIn = new Date(checkInTime)
+    const durationMinutes = Math.round((now - checkIn) / (1000 * 60))
+    const hours = Math.floor(durationMinutes / 60)
+    const minutes = durationMinutes % 60
+    return `${hours}h ${minutes}m`
+  }
+
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case 'urgent': return 'text-red-600 bg-red-100'
+      case 'high': return 'text-orange-600 bg-orange-100'
+      case 'normal': return 'text-blue-600 bg-blue-100'
+      case 'low': return 'text-gray-600 bg-gray-100'
+      default: return 'text-gray-600 bg-gray-100'
+    }
+  }
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'resolved': return 'text-green-600 bg-green-100'
+      case 'reviewed': return 'text-blue-600 bg-blue-100'
+      case 'submitted': return 'text-yellow-600 bg-yellow-100'
+      default: return 'text-gray-600 bg-gray-100'
     }
   }
 
@@ -78,7 +142,7 @@ export default function ManagementDashboard() {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
         <div className="text-center bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/20">
           <div className="animate-spin rounded-full h-12 w-12 border-3 border-blue-600 border-t-transparent mx-auto"></div>
-          <p className="mt-4 text-gray-600 font-medium">Loading...</p>
+          <p className="mt-4 text-gray-600 font-medium">Loading Dashboard...</p>
         </div>
       </div>
     )
@@ -101,6 +165,11 @@ export default function ManagementDashboard() {
                 Management Dashboard
               </h1>
               <p className="text-gray-600 mt-1">Welcome back, {session.user.name?.split(' ')[0]}</p>
+              {lastUpdated && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Last updated: {formatTime(lastUpdated)}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -114,7 +183,7 @@ export default function ManagementDashboard() {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-gray-900">Guards</h3>
-                <p className="text-sm text-gray-600">Manage security guards</p>
+                <p className="text-sm text-gray-600">{stats.onDutyGuards} on duty, {stats.offDutyGuards} off duty</p>
               </div>
             </div>
             <button 
@@ -133,7 +202,7 @@ export default function ManagementDashboard() {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-gray-900">Supervisors</h3>
-                <p className="text-sm text-gray-600">Manage supervisors</p>
+                <p className="text-sm text-gray-600">{stats.totalSupervisors} active supervisors</p>
               </div>
             </div>
             <button 
@@ -152,7 +221,7 @@ export default function ManagementDashboard() {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-gray-900">Clients</h3>
-                <p className="text-sm text-gray-600">Manage client properties</p>
+                <p className="text-sm text-gray-600">{stats.totalClients} active properties</p>
               </div>
             </div>
             <button 
@@ -171,7 +240,7 @@ export default function ManagementDashboard() {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-gray-900">All Reports</h3>
-                <p className="text-sm text-gray-600">View all incidents</p>
+                <p className="text-sm text-gray-600">{stats.totalIncidents} total, {stats.urgentIncidents} urgent</p>
               </div>
             </div>
             <button 
@@ -199,7 +268,7 @@ export default function ManagementDashboard() {
               <CheckCircle className="w-6 h-6 text-white" />
             </div>
             <div className="text-2xl font-bold text-green-600">{stats.onDutyGuards}</div>
-            <div className="text-sm text-gray-600 font-medium">On Duty</div>
+            <div className="text-sm text-gray-600 font-medium">On Duty Now</div>
           </div>
 
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6 text-center">
@@ -271,7 +340,147 @@ export default function ManagementDashboard() {
           </div>
         </div>
 
-        {/* Quick Access Links */}
+        {/* Activity Sections */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          {/* Recent Activity */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Activity className="w-5 h-5 text-blue-600" />
+              Recent Activity
+            </h3>
+            <div className="space-y-3 max-h-80 overflow-y-auto">
+              {stats.recentActivity.length > 0 ? (
+                stats.recentActivity.map((activity, index) => (
+                  <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                    <div className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(activity.priority)}`}>
+                      {activity.priority}
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-900 text-sm">{activity.incidentType}</div>
+                      <div className="text-xs text-gray-600">
+                        {activity.guardName} • {activity.clientName}
+                      </div>
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {formatTime(activity.createdAt)}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center text-gray-500 py-8">
+                  No recent activity
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Active Shifts */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Timer className="w-5 h-5 text-green-600" />
+              Active Shifts ({stats.onDutyGuards})
+            </h3>
+            <div className="space-y-3 max-h-80 overflow-y-auto">
+              {stats.activeShiftsDetails.length > 0 ? (
+                stats.activeShiftsDetails.map((shift, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                    <div>
+                      <div className="font-medium text-gray-900 text-sm">{shift.guardName}</div>
+                      <div className="text-xs text-gray-600">{shift.location}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-medium text-green-600">
+                        {getShiftDuration(shift.checkInTime)}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        Since {formatTime(shift.checkInTime)}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center text-gray-500 py-8">
+                  No active shifts
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Performance Sections */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          {/* Top Performing Guards */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Star className="w-5 h-5 text-yellow-600" />
+              Top Performing Guards (This Week)
+            </h3>
+            <div className="space-y-3">
+              {stats.guardPerformance.length > 0 ? (
+                stats.guardPerformance.map((guard, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                        <span className="text-sm font-bold text-yellow-600">#{index + 1}</span>
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-900 text-sm">{guard.guardName}</div>
+                        <div className="text-xs text-gray-600">{guard.shiftsCompleted} shifts completed</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-medium text-yellow-600">
+                        {Math.round(guard.totalHours * 10) / 10}h
+                      </div>
+                      <div className="text-xs text-gray-500">total hours</div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center text-gray-500 py-8">
+                  No performance data available
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Incident Types Distribution */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-purple-600" />
+              Incident Types Distribution
+            </h3>
+            <div className="space-y-3">
+              {stats.incidentTypes.length > 0 ? (
+                stats.incidentTypes.map((type, index) => {
+                  const percentage = stats.totalIncidents > 0 ? Math.round((type.count / stats.totalIncidents) * 100) : 0
+                  return (
+                    <div key={index} className="space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span className="font-medium text-gray-900">{type._id || 'Other'}</span>
+                        <span className="text-gray-600">{type.count} ({percentage}%)</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-gradient-to-r from-purple-500 to-purple-600 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${percentage}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  )
+                })
+              ) : (
+                <div className="text-center text-gray-500 py-8">
+                  No incident data available
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl p-6 border border-blue-200">
             <h3 className="text-lg font-bold text-blue-900 mb-4 flex items-center gap-2">
@@ -288,8 +497,12 @@ export default function ManagementDashboard() {
                 <span className="font-bold text-blue-900">{stats.totalClients}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-blue-700">Supervisors:</span>
-                <span className="font-bold text-blue-900">{stats.totalSupervisors}</span>
+                <span className="text-blue-700">Response Rate:</span>
+                <span className="font-bold text-blue-900">{stats.responseRate}%</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-blue-700">Avg Shift:</span>
+                <span className="font-bold text-blue-900">{stats.avgShiftDuration}h</span>
               </div>
             </div>
           </div>
@@ -297,11 +510,15 @@ export default function ManagementDashboard() {
           <div className="bg-gradient-to-br from-green-50 to-emerald-100 rounded-2xl p-6 border border-green-200">
             <h3 className="text-lg font-bold text-green-900 mb-4 flex items-center gap-2">
               <Clock className="w-5 h-5" />
-              Today's Activity
+              Weekly Activity
             </h3>
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-green-700">New Reports:</span>
+                <span className="font-bold text-green-900">{stats.weeklyIncidents}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-green-700">Today's Reports:</span>
                 <span className="font-bold text-green-900">{stats.todayIncidents}</span>
               </div>
               <div className="flex justify-between">
@@ -309,8 +526,8 @@ export default function ManagementDashboard() {
                 <span className="font-bold text-green-900">{stats.urgentIncidents}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-green-700">Response Rate:</span>
-                <span className="font-bold text-green-900">98%</span>
+                <span className="text-green-700">Shifts This Week:</span>
+                <span className="font-bold text-green-900">{stats.shiftsThisWeek}</span>
               </div>
             </div>
           </div>
@@ -318,30 +535,50 @@ export default function ManagementDashboard() {
           <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-6 border border-purple-200">
             <h3 className="text-lg font-bold text-purple-900 mb-4 flex items-center gap-2">
               <Mail className="w-5 h-5" />
-              Quick Actions
+              Communication Stats
             </h3>
-            <div className="space-y-2">
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-purple-700">Messages Sent:</span>
+                <span className="font-bold text-purple-900">{stats.communicationMessages}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-purple-700">Pending Items:</span>
+                <span className="font-bold text-purple-900">{stats.pendingIncidents}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-purple-700">Resolved:</span>
+                <span className="font-bold text-purple-900">{stats.resolvedIncidents}</span>
+              </div>
+            </div>
+            <div className="mt-4 pt-3 border-t border-purple-200">
               <button
                 onClick={() => router.push('/management/guards')}
-                className="w-full text-left px-3 py-2 text-purple-700 hover:bg-purple-100 rounded-lg transition-colors"
+                className="w-full text-left px-3 py-2 text-purple-700 hover:bg-purple-100 rounded-lg transition-colors text-sm"
               >
-                View Guard Status
+                → View Guard Status
               </button>
               <button
                 onClick={() => router.push('/management/reports')}
-                className="w-full text-left px-3 py-2 text-purple-700 hover:bg-purple-100 rounded-lg transition-colors"
+                className="w-full text-left px-3 py-2 text-purple-700 hover:bg-purple-100 rounded-lg transition-colors text-sm"
               >
-                Review Reports
-              </button>
-              <button
-                onClick={() => router.push('/clients')}
-                className="w-full text-left px-3 py-2 text-purple-700 hover:bg-purple-100 rounded-lg transition-colors"
-              >
-                Manage Properties
+                → Review All Reports
               </button>
             </div>
           </div>
         </div>
+
+        {/* Loading Overlay */}
+        {statsLoading && (
+          <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl p-6 shadow-xl border border-white/20">
+              <div className="flex items-center gap-3">
+                <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-600 border-t-transparent"></div>
+                <span className="text-gray-700 font-medium">Updating dashboard...</span>
+              </div>
+            </div>
+          </div>
+        )}
 
       </main>
     </div>
