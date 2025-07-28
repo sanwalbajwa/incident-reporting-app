@@ -10,7 +10,6 @@ import {
   Users, 
   BarChart3, 
   Mail, 
-  Wrench, 
   TrendingUp,
   User,
   LogOut,
@@ -19,7 +18,6 @@ import {
   ChevronDown,
   Settings,
   Shield,
-  HardHat,
   Crown,
   UserCheck
 } from 'lucide-react'
@@ -38,8 +36,6 @@ export default function Header() {
     switch (session.user.role) {
       case 'security_supervisor':
         return '/supervisor-dashboard'
-      case 'maintenance':
-        return '/maintenance-dashboard'
       case 'management':
         return '/management-dashboard'
       default:
@@ -52,8 +48,6 @@ export default function Header() {
     switch (session.user.role) {
       case 'security_supervisor':
         return 'Security Supervisor'
-      case 'maintenance':
-        return 'Maintenance Team'
       case 'management':
         return 'Management'
       case 'guard':
@@ -68,8 +62,6 @@ export default function Header() {
     switch (session.user.role) {
       case 'security_supervisor':
         return <Shield className="w-4 h-4" />
-      case 'maintenance':
-        return <HardHat className="w-4 h-4" />
       case 'management':
         return <Crown className="w-4 h-4" />
       case 'guard':
@@ -84,8 +76,6 @@ export default function Header() {
     switch (session.user.role) {
       case 'security_supervisor':
         return 'bg-gradient-to-r from-purple-500 to-purple-600 text-white'
-      case 'maintenance':
-        return 'bg-gradient-to-r from-green-500 to-green-600 text-white'
       case 'management':
         return 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
       case 'guard':
@@ -127,48 +117,44 @@ export default function Header() {
       // Supervisor-specific navigation
       items.push(
         {
-          name: 'Add Client',
-          href: '/clients',
+          name: 'Manage Guards',
+          href: '/supervisor/guards',
           icon: Users,
           active: pathname.startsWith('/supervisor/guards')
-        }
-      )
-    } else if (session.user.role === 'maintenance') {
-      // Maintenance-specific navigation
-      items.push(
-        {
-          name: 'Work Orders',
-          href: '/maintenance/orders',
-          icon: Wrench,
-          active: pathname.startsWith('/maintenance/orders')
         },
         {
-          name: 'Messages',
-          href: '/maintenance/messages',
-          icon: Mail,
-          active: pathname.startsWith('/maintenance/messages')
+          name: 'Clients',
+          href: '/clients',
+          icon: Building2,
+          active: pathname === '/clients'
         }
       )
     } else if (session.user.role === 'management') {
-      // Management-specific navigation
+  // Management-specific navigation
       items.push(
         {
-          name: 'Overview',
-          href: '/management/overview',
-          icon: TrendingUp,
-          active: pathname.startsWith('/management/overview')
+          name: 'Guards',
+          href: '/management/guards',
+          icon: Users,
+          active: pathname.startsWith('/management/guards')
         },
         {
-          name: 'Reports',
+          name: 'Supervisors', 
+          href: '/management/supervisors',
+          icon: Shield,
+          active: pathname.startsWith('/management/supervisors')
+        },
+        {
+          name: 'Clients',
+          href: '/clients',
+          icon: Building2,
+          active: pathname === '/clients'
+        },
+        {
+          name: 'All Reports',
           href: '/management/reports',
           icon: BarChart3,
           active: pathname.startsWith('/management/reports')
-        },
-        {
-          name: 'Messages',
-          href: '/management/messages',
-          icon: Mail,
-          active: pathname.startsWith('/management/messages')
         }
       )
     }
@@ -184,21 +170,21 @@ export default function Header() {
         <div className="flex justify-between items-center h-20">
           
           {/* Logo and Brand */}
-          <div className="flex items-center py-4"> {/* Increased top & bottom padding */}
-          <button
-            onClick={() => router.push(getDashboardUrl())}
-            className="flex items-center space-x-4 hover:opacity-80 transition-all duration-200 group"
-          >
-            {/* Circular Logo */}
-            <div className="w-24 h-24 relative rounded-full overflow-hidden transform group-hover:scale-105 transition-transform duration-200">
-              <Image
-                src="/smile-4-life.png"
-                alt="IRPA Logo"
-                fill
-                className="object-contain"
-                priority
-              />
-            </div>
+          <div className="flex items-center py-4">
+            <button
+              onClick={() => router.push(getDashboardUrl())}
+              className="flex items-center space-x-4 hover:opacity-80 transition-all duration-200 group"
+            >
+              {/* Circular Logo */}
+              <div className="w-24 h-24 relative rounded-full overflow-hidden transform group-hover:scale-105 transition-transform duration-200">
+                <Image
+                  src="/smile-4-life.png"
+                  alt="IRPA Logo"
+                  fill
+                  className="object-contain"
+                  priority
+                />
+              </div>
               <div>
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900 bg-clip-text text-transparent">
                   Smile 4 Life

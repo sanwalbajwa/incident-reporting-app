@@ -16,7 +16,6 @@ import {
   Phone,
   Users,
   Crown,
-  HardHat,
   UserCheck
 } from 'lucide-react'
 
@@ -141,8 +140,6 @@ export default function RegisterPage() {
         return <UserCheck className="w-4 h-4" />
       case 'security_supervisor':
         return <Shield className="w-4 h-4" />
-      case 'maintenance':
-        return <HardHat className="w-4 h-4" />
       case 'management':
         return <Crown className="w-4 h-4" />
       default:
@@ -286,7 +283,7 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* Role Selection */}
+            {/* Role Selection - UPDATED: Removed maintenance role */}
             <div className="space-y-2">
               <label className="block text-sm font-bold text-gray-700 flex items-center gap-2">
                 <Users className="w-4 h-4 text-blue-600" />
@@ -303,7 +300,6 @@ export default function RegisterPage() {
                 <option value="">Select Your Role</option>
                 <option value="guard">🛡️ Security Guard</option>
                 <option value="security_supervisor">👮 Security Supervisor</option>
-                <option value="maintenance">🔧 Maintenance Team</option>
                 <option value="management">👑 Management</option>
               </select>
             </div>

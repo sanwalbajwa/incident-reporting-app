@@ -1,8 +1,10 @@
+// src/app/api/recipients/route.js - Updated to remove maintenance role
+
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import clientPromise from '@/lib/mongodb'
 
-// GET all available recipients (supervisors, maintenance, management)
+// GET all available recipients (supervisors, management) - MAINTENANCE REMOVED
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
@@ -15,11 +17,11 @@ export async function GET() {
     const db = client.db('incident-reporting-db')
     const users = db.collection('users')
     
-    // Get all users who can receive messages (excluding guards)
+    // Get all users who can receive messages (excluding guards and maintenance)
     const recipients = await users
       .find({ 
         role: { 
-          $in: ['security_supervisor', 'maintenance', 'management'] 
+          $in: ['security_supervisor', 'management'] // REMOVED 'maintenance'
         },
         isActive: true 
       })
@@ -51,13 +53,11 @@ export async function GET() {
   }
 }
 
-// Helper function to format role names
+// Helper function to format role names - UPDATED to remove maintenance
 function formatRole(role) {
   switch (role) {
     case 'security_supervisor':
       return 'Security Supervisor'
-    case 'maintenance':
-      return 'Maintenance Team'
     case 'management':
       return 'Management'
     default:

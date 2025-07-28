@@ -65,12 +65,13 @@ export default function ClientsPage() {
 
   const handleBackToDashboard = () => {
     const role = session?.user?.role;
-    if (role === 'security_supervisor' || role === 'management') {
+    if (role === 'security_supervisor') {
       router.push('/supervisor-dashboard');
+    } else if (role === 'management') {
+      router.push('/management-dashboard');
     } else if (role === 'guard') {
       router.push('/dashboard');
     } else {
-      // optional fallback
       router.push('/');
     }
   };
@@ -158,7 +159,45 @@ export default function ClientsPage() {
     
     return matchesSearch && matchesType
   })
+  const handleDeleteClient = async (clientId, clientName) => {
+  if (!confirm(`⚠️ WARNING: Are you absolutely sure you want to delete ${clientName}?\n\nThis action cannot be undone and will:\n- Remove the client from the system\n- Prevent new incidents from being assigned to this client\n- Keep existing incident history for records\n\nType "DELETE" to confirm.`)) {
+    return
+  }
 
+  const confirmation = prompt(`To confirm deletion of ${clientName}, please type "DELETE" (in capital letters):`);
+  if (confirmation !== 'DELETE') {
+    alert('Deletion cancelled. You must type "DELETE" exactly to confirm.');
+    return;
+  }
+
+  setLoading(true)
+  
+  try {
+    const response = await fetch('/api/clients', {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        clientId
+      })
+    })
+    
+    const data = await response.json()
+    
+    if (response.ok) {
+      alert(`✅ ${clientName} has been successfully deleted from the system.`)
+      loadClients() // Refresh the list
+    } else {
+      alert(`❌ Error: ${data.error}`)
+    }
+  } catch (error) {
+    alert('❌ Network error occurred')
+    console.error('Delete client error:', error)
+  }
+  
+  setLoading(false)
+}
   const propertyTypes = ['Residential', 'Commercial', 'Industrial', 'Mixed Use']
   const typeStats = propertyTypes.map(type => ({
     type,
@@ -593,30 +632,39 @@ export default function ClientsPage() {
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
                             <button
-             
-                                   onClick={() => {/* Add view functionality */}}
+                              onClick={() => {/* Add view functionality */}}
                               className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
                             >
-        
-                               <Eye className="w-4 h-4" />
+                              <Eye className="w-4 h-4" />
                               View
                             </button>
-                 
-                           {(session?.user?.role === 'security_supervisor' ||
-                           session?.user?.role === 'management') && (
-                              <button
-                                onClick={() => {/* Add edit functionality */}}
                             
-                                   className="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
-                              >
-                                <Edit className="w-4 h-4" />
-                    
-                                 Edit
-                              </button>
+                            {(session?.user?.role === 'security_supervisor' || session?.user?.role === 'management') && (
+                              <>
+                                <button
+                                  onClick={() => {/* Add edit functionality */}}
+                                  className="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                  Edit
+                                </button>
+                                
+                                <button
+                                  onClick={() => handleDeleteClient(client._id, client.name)}
+                                  disabled={loading}
+                                  className="bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+                                >
+                                  {loading ? (
+                                    <RefreshCw className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="w-4 h-4" />
+                                  )}
+                                  Delete
+                                </button>
+                              </>
                             )}
                           </div>
-    
-                         </td>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -670,28 +718,38 @@ export default function ClientsPage() {
           
            
                     <div className="flex gap-2">
-                      <button
-                        onClick={() => {/* Add view functionality */}}
-                
-                         className="flex-1 bg-blue-100 hover:bg-blue-200 text-blue-700 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1"
-                      >
-                        <Eye className="w-4 h-4" />
-                        View
-       
-                       </button>
-                      {(session?.user?.role === 'security_supervisor' ||
-                       session?.user?.role === 'management') && (
-                        <button
-                          onClick={() => {/* Add edit functionality */}}
-                          className="flex-1 bg-green-100 hover:bg-green-200 text-green-700 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1"
+  <button
+    onClick={() => {/* Add view functionality */}}
+    className="flex-1 bg-blue-100 hover:bg-blue-200 text-blue-700 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1"
+  >
+    <Eye className="w-4 h-4" />
+    View
+  </button>
   
-                         >
-                          <Edit className="w-4 h-4" />
-                          Edit
-                       
-                         </button>
-                      )}
-                    </div>
+  {(session?.user?.role === 'security_supervisor' || session?.user?.role === 'management') && (
+    <>
+      <button
+        onClick={() => {/* Add edit functionality */}}
+        className="flex-1 bg-green-100 hover:bg-green-200 text-green-700 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1"
+      >
+        <Edit className="w-4 h-4" />
+        Edit
+      </button>
+      
+      <button
+        onClick={() => handleDeleteClient(client._id, client.name)}
+        disabled={loading}
+        className="bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+      >
+        {loading ? (
+          <RefreshCw className="w-4 h-4 animate-spin" />
+        ) : (
+          <Trash2 className="w-4 h-4" />
+        )}
+      </button>
+    </>
+  )}
+</div>
                   </div>
                 ))}
               </div>
