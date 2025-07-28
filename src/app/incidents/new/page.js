@@ -1,4 +1,4 @@
-// Update: src/app/incidents/new/page.js - Fixed function order
+// Complete: src/app/incidents/new/page.js - Enhanced with multi-recipient support
 'use client'
 import { useSession } from 'next-auth/react'
 import { useState, useEffect } from 'react'
@@ -19,7 +19,13 @@ import {
   Upload, 
   X,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Users,
+  Shield,
+  Crown,
+  UserCheck,
+  Plus,
+  Minus
 } from 'lucide-react'
 
 // Simplified incident types as per document
@@ -32,8 +38,33 @@ const INCIDENT_TYPES = [
   'Property Damage',
   'Suspicious Activity',
   'Fire/Safety',
-  'Communication/Message', // Add this for communications
+  'Communication/Message',
   'Other'
+]
+
+// Group definitions with icons and colors
+const RECIPIENT_GROUPS = [
+  {
+    id: 'security_supervisor',
+    name: 'All Security Supervisors',
+    icon: Shield,
+    color: 'from-purple-500 to-purple-600',
+    description: 'Send to all supervisors in the system'
+  },
+  {
+    id: 'management',
+    name: 'All Management',
+    icon: Crown,
+    color: 'from-blue-500 to-blue-600',
+    description: 'Send to all management personnel'
+  },
+  {
+    id: 'guard',
+    name: 'All Security Guards',
+    icon: UserCheck,
+    color: 'from-gray-500 to-gray-600',
+    description: 'Send to all security guards'
+  }
 ]
 
 export default function NewIncidentPage() {
@@ -44,7 +75,9 @@ export default function NewIncidentPage() {
   const [clients, setClients] = useState([])
   const [recipients, setRecipients] = useState([])
   const [formData, setFormData] = useState({
-    recipientId: '',
+    recipientIds: [], // Changed to array for multiple recipients
+    recipientGroups: [], // New field for group selection
+    useGroupSelection: false, // New field for checkbox
     clientId: '',
     incidentType: '',
     customIncidentType: '',
@@ -57,7 +90,6 @@ export default function NewIncidentPage() {
     attachments: []
   })
 
-  // MOVE THESE FUNCTIONS BEFORE useEffect
   const loadClients = async () => {
     try {
       const response = await fetch('/api/clients')
@@ -84,7 +116,6 @@ export default function NewIncidentPage() {
     }
   }
 
-  // Separate function to upload files with better debugging
   const uploadFiles = async (incidentId) => {
     console.log('=== FILE UPLOAD DEBUG ===')
     console.log('Incident ID:', incidentId)
@@ -94,7 +125,6 @@ export default function NewIncidentPage() {
       const formDataToSend = new FormData()
       formDataToSend.append('incidentId', incidentId)
       
-      // Log each file being added
       for (let i = 0; i < formData.attachments.length; i++) {
         const file = formData.attachments[i]
         console.log(`File ${i + 1}:`, {
@@ -138,8 +168,27 @@ export default function NewIncidentPage() {
       // Determine if this is a communication or incident
       const isCommunication = formData.incidentType === 'Communication/Message'
       
+      // Prepare recipient data based on selection type
+      let recipientData = {}
+      
+      if (formData.useGroupSelection) {
+        // Group-based selection
+        recipientData = {
+          recipientType: 'group',
+          recipientGroups: formData.recipientGroups,
+          recipientIds: [] // Empty for group selection
+        }
+      } else {
+        // Individual selection
+        recipientData = {
+          recipientType: 'individual',
+          recipientIds: formData.recipientIds,
+          recipientGroups: [] // Empty for individual selection
+        }
+      }
+      
       const incidentData = {
-        recipientId: formData.recipientId,
+        ...recipientData,
         clientId: formData.clientId,
         incidentType: formData.incidentType === 'Other' ? formData.customIncidentType : formData.incidentType,
         priority: formData.priority,
@@ -185,11 +234,33 @@ export default function NewIncidentPage() {
           console.log('No files to upload')
         }
         
-        if (isCommunication) {
-          alert(`Message sent successfully!\nMessage ID: ${data.incident.incidentId}`)
+        // Show success message based on recipient type
+        let successMessage = ''
+        if (formData.useGroupSelection && formData.recipientGroups.length > 0) {
+          const groupNames = formData.recipientGroups.map(groupId => 
+            RECIPIENT_GROUPS.find(g => g.id === groupId)?.name || groupId
+          ).join(', ')
+          
+          if (isCommunication) {
+            successMessage = `Message sent successfully to ${groupNames}!\nMessage ID: ${data.incident.incidentId}`
+          } else {
+            successMessage = `Incident reported successfully to ${groupNames}!\nIncident ID: ${data.incident.incidentId}`
+          }
+        } else if (formData.recipientIds.length > 1) {
+          if (isCommunication) {
+            successMessage = `Message sent successfully to ${formData.recipientIds.length} recipients!\nMessage ID: ${data.incident.incidentId}`
+          } else {
+            successMessage = `Incident reported successfully to ${formData.recipientIds.length} recipients!\nIncident ID: ${data.incident.incidentId}`
+          }
         } else {
-          alert(`Incident reported successfully!\nIncident ID: ${data.incident.incidentId}`)
+          if (isCommunication) {
+            successMessage = `Message sent successfully!\nMessage ID: ${data.incident.incidentId}`
+          } else {
+            successMessage = `Incident reported successfully!\nIncident ID: ${data.incident.incidentId}`
+          }
         }
+        
+        alert(successMessage)
         router.push('/incidents')
       } else {
         alert(`Error: ${data.error || 'Failed to submit'}`)
@@ -225,13 +296,43 @@ export default function NewIncidentPage() {
     }))
   }
 
+  // Handle individual recipient selection
+  const handleRecipientToggle = (recipientId) => {
+    setFormData(prev => ({
+      ...prev,
+      recipientIds: prev.recipientIds.includes(recipientId)
+        ? prev.recipientIds.filter(id => id !== recipientId)
+        : [...prev.recipientIds, recipientId]
+    }))
+  }
+
+  // Handle group selection
+  const handleGroupToggle = (groupId) => {
+    setFormData(prev => ({
+      ...prev,
+      recipientGroups: prev.recipientGroups.includes(groupId)
+        ? prev.recipientGroups.filter(id => id !== groupId)
+        : [...prev.recipientGroups, groupId]
+    }))
+  }
+
+  // Clear selections when switching between modes
+  const handleModeSwitch = (useGroupSelection) => {
+    setFormData(prev => ({
+      ...prev,
+      useGroupSelection,
+      recipientIds: [],
+      recipientGroups: []
+    }))
+  }
+
   // Redirect if not logged in
   useEffect(() => {
     if (status === 'loading') return
     if (!session) router.push('/login')
   }, [session, status, router])
 
-  // Load clients and recipients - NOW FUNCTIONS ARE DEFINED ABOVE
+  // Load clients and recipients
   useEffect(() => {
     if (session) {
       loadClients()
@@ -305,41 +406,148 @@ export default function NewIncidentPage() {
           </div>
 
           {/* STEP 1: Recipient Selection */}
-          <div className="space-y-3">
+          <div className="space-y-6">
             <label className="block text-lg font-semibold text-gray-900 flex items-center gap-2">
               <div className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-bold">
                 STEP 1
               </div>
               <Send className="w-5 h-5 text-blue-600" />
-              Select Recipient
+              Select Recipients
               <span className="text-red-500">*</span>
             </label>
-            <select
-              name="recipientId"
-              value={formData.recipientId}
-              onChange={handleChange}
-              required
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 text-gray-900"
-            >
-              <option value="">-- Select Recipient --</option>
-              {recipients.map(recipient => (
-                <option key={recipient._id} value={recipient._id}>
-                  {recipient.name} ({recipient.role})
-                </option>
-              ))}
-              {/* Fallback options if API not ready */}
-              {recipients.length === 0 && (
-                <>
-                  <option value="security_supervisor">Security Supervisor</option>
-                  <option value="maintenance">Maintenance Team</option>
-                  <option value="management">Management</option>
-                </>
-              )}
-            </select>
-            <p className="text-sm text-gray-600 flex items-center gap-1">
-              <AlertCircle className="w-4 h-4" />
-              Choose who should receive this report or message
-            </p>
+
+            {/* Mode Selection Checkbox */}
+            <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.useGroupSelection}
+                  onChange={(e) => handleModeSwitch(e.target.checked)}
+                  className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
+                />
+                <div className="flex items-center gap-2">
+                  <Users className="w-5 h-5 text-blue-600" />
+                  <span className="font-medium text-gray-900">Select recipients by groups</span>
+                </div>
+              </label>
+              <p className="text-sm text-gray-600 mt-1 ml-8">
+                Check this to send to all members of selected roles/departments
+              </p>
+            </div>
+
+            {formData.useGroupSelection ? (
+              /* Group Selection Mode */
+              <div className="space-y-4">
+                <h4 className="font-semibold text-gray-800 flex items-center gap-2">
+                  <Users className="w-5 h-5 text-purple-600" />
+                  Select Groups to Send To:
+                </h4>
+                <div className="grid grid-cols-1 gap-3">
+                  {RECIPIENT_GROUPS.map((group) => {
+                    const IconComponent = group.icon
+                    const isSelected = formData.recipientGroups.includes(group.id)
+                    
+                    return (
+                      <label 
+                        key={group.id}
+                        className={`flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
+                          isSelected 
+                            ? 'border-purple-300 bg-purple-50' 
+                            : 'border-gray-200 bg-white hover:border-purple-200 hover:bg-purple-25'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleGroupToggle(group.id)}
+                          className="sr-only"
+                        />
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center mr-4 bg-gradient-to-br ${group.color}`}>
+                          <IconComponent className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-semibold text-gray-900">{group.name}</div>
+                          <div className="text-sm text-gray-600">{group.description}</div>
+                        </div>
+                        {isSelected && (
+                          <CheckCircle className="w-6 h-6 text-purple-600" />
+                        )}
+                      </label>
+                    )
+                  })}
+                </div>
+                {formData.recipientGroups.length > 0 && (
+                  <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+                    <p className="text-purple-800 font-medium">
+                      📢 This {isCommunication ? 'message' : 'report'} will be sent to all members of: {' '}
+                      {formData.recipientGroups.map(groupId => 
+                        RECIPIENT_GROUPS.find(g => g.id === groupId)?.name || groupId
+                      ).join(', ')}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* Individual Selection Mode */
+              <div className="space-y-4">
+                <h4 className="font-semibold text-gray-800">Select Individual Recipients:</h4>
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {recipients.map((recipient) => {
+                    const isSelected = formData.recipientIds.includes(recipient._id)
+                    
+                    return (
+                      <label 
+                        key={recipient._id}
+                        className={`flex items-center p-3 rounded-xl border cursor-pointer transition-all duration-200 ${
+                          isSelected 
+                            ? 'border-blue-300 bg-blue-50' 
+                            : 'border-gray-200 bg-white hover:border-blue-200 hover:bg-blue-25'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleRecipientToggle(recipient._id)}
+                          className="sr-only"
+                        />
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900">{recipient.name}</div>
+                          <div className="text-sm text-gray-600">{recipient.role}</div>
+                        </div>
+                        {isSelected && (
+                          <CheckCircle className="w-5 h-5 text-blue-600" />
+                        )}
+                      </label>
+                    )
+                  })}
+                </div>
+                
+                {/* Selected Recipients Summary */}
+                {formData.recipientIds.length > 0 && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                    <p className="text-blue-800 font-medium">
+                      📧 Selected {formData.recipientIds.length} recipient(s): {' '}
+                      {formData.recipientIds.map(id => 
+                        recipients.find(r => r._id === id)?.name || 'Unknown'
+                      ).join(', ')}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Validation Message */}
+            {((!formData.useGroupSelection && formData.recipientIds.length === 0) || 
+              (formData.useGroupSelection && formData.recipientGroups.length === 0)) && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                <div className="flex items-center gap-2 text-amber-800">
+                  <AlertCircle className="w-5 h-5" />
+                  <span className="font-medium">
+                    Please select at least one {formData.useGroupSelection ? 'group' : 'recipient'} to continue
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* STEP 2: Client Selection */}
@@ -368,7 +576,7 @@ export default function NewIncidentPage() {
             </select>
           </div>
 
-          {/* Message Type Selection */}
+          {/* Incident Type Selection */}
           <div className="space-y-3">
             <label className="block text-lg font-semibold text-gray-900 flex items-center gap-2">
               <MessageCircle className="w-5 h-5 text-blue-600" />

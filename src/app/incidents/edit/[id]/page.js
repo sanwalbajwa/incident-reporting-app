@@ -640,11 +640,11 @@ export default function EditIncidentPage({ params }) {
             </select>
           </div>
 
-          {/* Message Type Selection */}
+          {/* Incident Type Selection */}
           <div className="space-y-3">
             <label className="block text-lg font-bold text-gray-900 flex items-center gap-2">
               <MessageCircle className="w-5 h-5 text-blue-600" />
-              Message Type
+              Incident Type
               <span className="text-red-500">*</span>
             </label>
             <select
