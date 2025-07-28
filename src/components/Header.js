@@ -90,12 +90,12 @@ export default function Header() {
     const items = []
 
     // Dashboard (always available)
-    items.push({
-      name: 'Dashboard',
-      href: getDashboardUrl(),
-      icon: Home,
-      active: pathname === getDashboardUrl()
-    })
+    // items.push({
+    //   name: 'Dashboard',
+    //   href: getDashboardUrl(),
+    //   icon: Home,
+    //   active: pathname === getDashboardUrl()
+    // })
 
     if (session.user.role === 'guard') {
       // Guard-specific navigation

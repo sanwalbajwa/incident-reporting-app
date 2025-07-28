@@ -7,13 +7,16 @@ import {
   LogIn, 
   LayoutDashboard, 
   UserCheck, 
-  Users 
+  Users,
+  Crown,
+  Loader2
 } from 'lucide-react'
 
 export default function Home() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [connectionStatus, setConnectionStatus] = useState('Testing...')
+  const [redirecting, setRedirecting] = useState(false)
 
   useEffect(() => {
     const testConnection = async () => {
@@ -34,53 +37,111 @@ export default function Home() {
     testConnection()
   }, [])
 
+  // Auto-redirect logged-in users to their dashboard
+  useEffect(() => {
+    if (status === 'loading') return // Still loading session
+
+    if (session?.user?.role) {
+      setRedirecting(true)
+      const dashboardUrl = getDashboardUrl(session.user.role)
+      
+      // Small delay to show the redirecting message
+      setTimeout(() => {
+        router.push(dashboardUrl)
+      }, 1000)
+    }
+  }, [session, status, router])
+
   // Get dashboard URL based on user role
-  const getDashboardUrl = () => {
-    if (!session?.user?.role) return '/dashboard'
-    
-    switch (session.user.role) {
+  const getDashboardUrl = (role) => {
+    switch (role) {
       case 'security_supervisor':
-      case 'maintenance':
-      case 'management':
         return '/supervisor-dashboard'
+      case 'management':
+        return '/management-dashboard'
       case 'guard':
+        return '/dashboard'
       default:
         return '/dashboard'
     }
   }
 
-  // Get dashboard button text based on role
-  const getDashboardText = () => {
-    if (!session?.user?.role) return 'Dashboard'
-    
-    switch (session.user.role) {
+  // Get role display name
+  const getRoleDisplay = (role) => {
+    switch (role) {
       case 'security_supervisor':
-        return 'Supervisor Dashboard'
-      case 'maintenance':
-        return 'Maintenance Dashboard'
+        return 'Security Supervisor'
       case 'management':
-        return 'Management Dashboard'
+        return 'Management'
       case 'guard':
+        return 'Security Guard'
       default:
-        return 'Guard Dashboard'
+        return role
     }
   }
 
   // Get role icon
-  const getRoleIcon = () => {
-    if (!session?.user?.role) return <LayoutDashboard className="w-6 h-6" />
-    
-    switch (session.user.role) {
+  const getRoleIcon = (role) => {
+    switch (role) {
       case 'security_supervisor':
-      case 'maintenance':
+        return <Shield className="w-6 h-6" />
       case 'management':
-        return <Users className="w-6 h-6" />
+        return <Crown className="w-6 h-6" />
       case 'guard':
-      default:
         return <UserCheck className="w-6 h-6" />
+      default:
+        return <Users className="w-6 h-6" />
     }
   }
 
+  // Show loading while checking session
+  if (status === 'loading') {
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center p-4">
+        <div className="text-center bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/20">
+          <div className="animate-spin rounded-full h-12 w-12 border-3 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">Loading...</p>
+        </div>
+      </main>
+    )
+  }
+
+  // Show redirecting message for logged-in users
+  if (session && redirecting) {
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center p-4">
+        <div className="text-center bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/20 max-w-md w-full">
+          <div className="w-20 h-20 bg-gradient-to-br from-blue-600 via-purple-600 to-blue-800 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl">
+            <Shield className="w-10 h-10 text-white" />
+          </div>
+          
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Welcome back, {session.user.name?.split(' ')[0]}!
+          </h2>
+          
+          <div className="flex items-center justify-center gap-3 mb-4">
+            {getRoleIcon(session.user.role)}
+            <span className="text-blue-600 font-semibold">
+              {getRoleDisplay(session.user.role)}
+            </span>
+          </div>
+          
+          <div className="flex items-center justify-center gap-3 text-gray-600 mb-6">
+            <Loader2 className="w-5 h-5 animate-spin" />
+            <span>Redirecting to your dashboard...</span>
+          </div>
+          
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+            <p className="text-blue-800 text-sm">
+              Taking you to the {getRoleDisplay(session.user.role)} dashboard
+            </p>
+          </div>
+        </div>
+      </main>
+    )
+  }
+
+  // Show login page for non-logged-in users
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center p-4">
       <div className="text-center max-w-2xl mx-auto">
@@ -91,96 +152,83 @@ export default function Home() {
             <Shield className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            Incident Reporting App
+            Smile 4 Life
           </h1>
           <p className="text-xl text-gray-600 mb-6">
-            Security Guard Management System
+            Security Management & Incident Reporting System
           </p>
         </div>
 
-        {/* User Welcome Section */}
-        {session?.user && (
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6 mb-8">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              {getRoleIcon()}
-              <h2 className="text-2xl font-bold text-gray-900">
-                Welcome back, {session.user.name?.split(' ')[0]}!
-              </h2>
-            </div>
-            <p className="text-gray-600">
-              Role: <span className="font-semibold text-blue-600 capitalize">
-                {session.user.role?.replace('_', ' ')}
-              </span>
+        {/* Login Section */}
+        <div className="space-y-6 mb-8">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              Access Your Dashboard
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Sign in to access your role-specific dashboard and manage security operations
             </p>
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="space-y-4 mb-8">
-          {session ? (
-            // Show Dashboard button if logged in
+            
+            {/* Login Button */}
             <button
-              onClick={() => router.push(getDashboardUrl())}
+              onClick={() => router.push('/login')}
               className="w-full max-w-md mx-auto bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-4 px-8 rounded-2xl text-xl font-bold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-3"
             >
-              {getRoleIcon()}
-              {getDashboardText()}
+              <LogIn className="w-6 h-6" />
+              Sign In to Dashboard
             </button>
-          ) : (
-            // Show Login button if not logged in
-            <div className="space-y-4">
+            
+            <p className="text-gray-600 mt-4">
+              Don't have an account?{' '}
               <button
-                onClick={() => router.push('/login')}
-                className="w-full max-w-md mx-auto bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white py-4 px-8 rounded-2xl text-xl font-bold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-3"
+                onClick={() => router.push('/register')}
+                className="text-blue-600 hover:text-blue-700 font-semibold underline"
               >
-                <LogIn className="w-6 h-6" />
-                Sign In
+                Sign up here
               </button>
-              
-              <p className="text-gray-600">
-                Don't have an account?{' '}
-                <button
-                  onClick={() => router.push('/register')}
-                  className="text-blue-600 hover:text-blue-700 font-semibold underline"
-                >
-                  Sign up here
-                </button>
-              </p>
-            </div>
-          )}
+            </p>
+          </div>
         </div>
 
-        {/* Quick Access for Logged in Users */}
-        {session && (
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
-            <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/20 hover:bg-white/80 transition-all duration-200 cursor-pointer"
-                 onClick={() => router.push('/incidents/new')}>
-              <div className="text-red-600 mb-2">
-                <Shield className="w-8 h-8 mx-auto" />
+        {/* Role-based Dashboard Preview */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-8 mb-8">
+          <h3 className="text-xl font-bold text-gray-900 mb-6">Dashboard Access by Role</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            
+            {/* Guard Dashboard */}
+            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 border border-gray-200">
+              <div className="w-12 h-12 bg-gradient-to-br from-gray-500 to-gray-600 rounded-xl flex items-center justify-center mx-auto mb-3">
+                <UserCheck className="w-6 h-6 text-white" />
               </div>
-              <h3 className="font-bold text-gray-900">Report Incident</h3>
-              <p className="text-sm text-gray-600">Create new incident report</p>
+              <h4 className="font-bold text-gray-900 mb-2">Security Guard</h4>
+              <p className="text-sm text-gray-600">Report incidents, manage shifts, view assignments</p>
             </div>
 
-            <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/20 hover:bg-white/80 transition-all duration-200 cursor-pointer"
-                 onClick={() => router.push('/incidents')}>
-              <div className="text-blue-600 mb-2">
-                <LayoutDashboard className="w-8 h-8 mx-auto" />
+            {/* Supervisor Dashboard */}
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200">
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mx-auto mb-3">
+                <Shield className="w-6 h-6 text-white" />
               </div>
-              <h3 className="font-bold text-gray-900">My Reports</h3>
-              <p className="text-sm text-gray-600">View your incident reports</p>
+              <h4 className="font-bold text-purple-900 mb-2">Security Supervisor</h4>
+              <p className="text-sm text-purple-700">Manage guards, review reports, oversee operations</p>
             </div>
 
-            <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/20 hover:bg-white/80 transition-all duration-200 cursor-pointer"
-                 onClick={() => router.push('/checkin')}>
-              <div className="text-green-600 mb-2">
-                <UserCheck className="w-8 h-8 mx-auto" />
+            {/* Management Dashboard */}
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mx-auto mb-3">
+                <Crown className="w-6 h-6 text-white" />
               </div>
-              <h3 className="font-bold text-gray-900">Check In/Out</h3>
-              <p className="text-sm text-gray-600">Manage your shift status</p>
+              <h4 className="font-bold text-blue-900 mb-2">Management</h4>
+              <p className="text-sm text-blue-700">System overview, analytics, user management</p>
             </div>
           </div>
-        )}
+        </div>
+
+        {/* System Status */}
+        <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-2xl p-6 text-white text-center shadow-xl">
+          <h3 className="text-lg font-bold mb-2">System Status</h3>
+          <p className="text-sm opacity-90">{connectionStatus}</p>
+        </div>
       </div>
     </main>
   )

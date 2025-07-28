@@ -32,6 +32,8 @@ export default function IncidentsPage() {
   const { activeShift, loading: shiftLoading, isOnDuty } = useShiftStatus()
   const [incidents, setIncidents] = useState([])
   const [loading, setLoading] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
+  const [page, setPage] = useState(1)
   const [filter, setFilter] = useState('all') // 'all', 'today', 'week', 'month'
 
   // Redirect if not logged in
@@ -47,20 +49,35 @@ export default function IncidentsPage() {
     }
   }, [session])
 
-  const loadIncidents = async () => {
-    setLoading(true)
-    try {
-      const response = await fetch('/api/incidents/list?guardOnly=true')
-      const data = await response.json()
-      
-      if (response.ok) {
+  const loadIncidents = async (pageNum = 1, append = false) => {
+  setLoading(true)
+  try {
+    const response = await fetch(`/api/incidents/list?guardOnly=true&page=${pageNum}&limit=20`) // Load 20 at a time
+    const data = await response.json()
+    
+    if (response.ok) {
+      if (append) {
+        setIncidents(prev => [...prev, ...(data.incidents || [])])
+      } else {
         setIncidents(data.incidents || [])
       }
-    } catch (error) {
-      console.error('Error loading incidents:', error)
+      
+      // Check if there are more pages
+      setHasMore(pageNum < data.totalPages)
+      setPage(pageNum)
     }
-    setLoading(false)
+  } catch (error) {
+    console.error('Error loading incidents:', error)
   }
+  setLoading(false)
+}
+
+// Load more function
+const loadMore = () => {
+  if (!loading && hasMore) {
+    loadIncidents(page + 1, true)
+  }
+}
 
   const formatDate = (date) => {
     return new Date(date).toLocaleString()
@@ -491,7 +508,28 @@ export default function IncidentsPage() {
             </div>
           )}
         </div>
-
+        {/* After the incidents list, add this: */}
+        {hasMore && incidents.length > 0 && (
+          <div className="text-center pt-6">
+            <button
+              onClick={loadMore}
+              disabled={loading}
+              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-blue-300 disabled:to-blue-400 text-white px-8 py-3 rounded-xl font-bold transition-all duration-200 flex items-center gap-2 mx-auto"
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                  Loading More...
+                </>
+              ) : (
+                <>
+                  <Plus className="w-5 h-5" />
+                  Load More Reports
+                </>
+              )}
+            </button>
+          </div>
+        )}
         {/* Quick Stats Summary */}
         <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-2xl p-8 text-white text-center shadow-xl">
           <TrendingUp className="w-12 h-12 mx-auto mb-4 opacity-90" />

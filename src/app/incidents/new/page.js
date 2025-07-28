@@ -81,12 +81,13 @@ export default function NewIncidentPage() {
     clientId: '',
     incidentType: '',
     customIncidentType: '',
-    priority: 'normal',
+    priority: '',
     incidentDate: '',
     incidentTime: '',
     locationWithinProperty: true,
     locationDescription: '',
     description: '',
+    incidentOriginatedBy: 'Property',
     attachments: []
   })
 
@@ -198,6 +199,7 @@ export default function NewIncidentPage() {
         withinProperty: formData.locationWithinProperty,
         location: formData.locationDescription,
         description: formData.description,
+        incidentOriginatedBy: formData.incidentOriginatedBy,
         messageType: isCommunication ? 'communication' : 'incident'
       }
 
@@ -337,13 +339,6 @@ export default function NewIncidentPage() {
     if (session) {
       loadClients()
       loadRecipients()
-      // Auto-fill current date and time
-      const now = new Date()
-      setFormData(prev => ({
-        ...prev,
-        incidentDate: now.toISOString().split('T')[0],
-        incidentTime: now.toTimeString().slice(0, 5)
-      }))
     }
   }, [session])
 
@@ -389,11 +384,11 @@ export default function NewIncidentPage() {
 
         <form onSubmit={handleSubmit} className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8 space-y-8">
           
-          {/* Guard Information - Auto-filled */}
+          {/* Initialize Incident Report - Auto-filled */}
           <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-2xl border border-blue-200">
             <h3 className="text-lg font-semibold text-blue-800 mb-4 flex items-center gap-2">
               <User className="w-5 h-5" />
-              Reporting Guard (Auto-filled)
+              Initialize Incident Report (Auto-filled)
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-blue-700">
               <div>
@@ -401,6 +396,9 @@ export default function NewIncidentPage() {
               </div>
               <div>
                 <span className="font-medium">Email:</span> {session.user.email}
+              </div>
+              <div>
+                <span className="font-medium">Date & Time:</span> {new Date().toLocaleString()}
               </div>
             </div>
           </div>
@@ -613,21 +611,56 @@ export default function NewIncidentPage() {
             )}
           </div>
 
-          {/* Priority Selection */}
+          {/* Priority Selection - Required */}
           <div className="space-y-3">
             <label className="block text-lg font-semibold text-gray-900">
-              Priority Level (Optional)
+              Priority Level <span className="text-red-500">*</span>
             </label>
             <select
               name="priority"
               value={formData.priority}
               onChange={handleChange}
+              required
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 text-gray-900"
             >
+              <option value="">-- Select Priority Level --</option>
               <option value="normal">📘 Normal</option>
               <option value="urgent">📙 Urgent</option>
               <option value="critical">📕 Critical</option>
             </select>
+          </div>
+
+          {/* Incident Originated By */}
+          <div className="space-y-3">
+            <label className="block text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-blue-600" />
+              Incident originated by?
+              <span className="text-red-500">*</span>
+            </label>
+            <div className="space-y-3">
+              <label className="flex items-center p-4 bg-blue-50 rounded-xl border border-blue-200 cursor-pointer hover:bg-blue-100 transition-colors">
+                <input
+                  type="radio"
+                  name="incidentOriginatedBy"
+                  value="Property"
+                  checked={formData.incidentOriginatedBy === 'Property'}
+                  onChange={handleChange}
+                  className="mr-3 w-4 h-4 text-blue-600"
+                />
+                <span className="font-medium text-blue-800">Property</span>
+              </label>
+              <label className="flex items-center p-4 bg-green-50 rounded-xl border border-green-200 cursor-pointer hover:bg-green-100 transition-colors">
+                <input
+                  type="radio"
+                  name="incidentOriginatedBy"
+                  value="Smile4Life"
+                  checked={formData.incidentOriginatedBy === 'Smile4Life'}
+                  onChange={handleChange}
+                  className="mr-3 w-4 h-4 text-green-600"
+                />
+                <span className="font-medium text-green-800">Smile4Life</span>
+              </label>
+            </div>
           </div>
 
           {/* Date & Time */}
@@ -635,7 +668,7 @@ export default function NewIncidentPage() {
             <div className="space-y-3">
               <label className="block text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <Calendar className="w-5 h-5 text-blue-600" />
-                {isCommunication ? 'Message Date' : 'Incident Date'} (Auto-filled)
+                {isCommunication ? 'Message Date' : 'Incident Date'}
                 <span className="text-red-500">*</span>
               </label>
               <input
@@ -651,7 +684,7 @@ export default function NewIncidentPage() {
             <div className="space-y-3">
               <label className="block text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <Clock className="w-5 h-5 text-blue-600" />
-                {isCommunication ? 'Message Time' : 'Incident Time'} (Auto-filled)
+                {isCommunication ? 'Message Time' : 'Incident Time'}
                 <span className="text-red-500">*</span>
               </label>
               <input

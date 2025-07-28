@@ -370,6 +370,53 @@ export default function ViewIncidentPage({ params }) {
             </div>
           </div>
         </div>
+        
+        {/* Incident Originated By Information */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+            <Building2 className="w-6 h-6 text-green-600" />
+            Incident Origin Information
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Building2 className="w-4 h-4" />
+                <span className="font-medium">Incident originated by</span>
+              </div>
+              <div className={`px-4 py-3 rounded-xl border flex items-center gap-3 ${
+                incident.incidentOriginatedBy === 'Smile4Life' 
+                  ? 'bg-green-50 border-green-200' 
+                  : 'bg-blue-50 border-blue-200'
+              }`}>
+                <div className={`w-3 h-3 rounded-full ${
+                  incident.incidentOriginatedBy === 'Smile4Life' 
+                    ? 'bg-green-500' 
+                    : 'bg-blue-500'
+                }`}></div>
+                <span className={`text-lg font-bold ${
+                  incident.incidentOriginatedBy === 'Smile4Life' 
+                    ? 'text-green-800' 
+                    : 'text-blue-800'
+                }`}>
+                  {incident.incidentOriginatedBy || 'Property'}
+                </span>
+              </div>
+            </div>
+            
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <AlertTriangle className="w-4 h-4" />
+                <span className="font-medium">Origin Type</span>
+              </div>
+              <div className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-700 font-medium">
+                {incident.incidentOriginatedBy === 'Smile4Life' 
+                  ? 'Company Initiated' 
+                  : 'Property Initiated'
+                }
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Client Information */}
         {client && (

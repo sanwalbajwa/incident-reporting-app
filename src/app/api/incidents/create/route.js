@@ -130,6 +130,7 @@ export async function POST(request) {
       incidentDateTime: incidentData.incidentDateTime,
       withinProperty: incidentData.withinProperty,
       location: incidentData.location,
+      incidentOriginatedBy: incidentData.incidentOriginatedBy,
       description: incidentData.description,
       messageType: incidentData.messageType || (isCommunication ? 'communication' : 'incident'),
       attachments: [], // Initialize empty - files will be uploaded separately
