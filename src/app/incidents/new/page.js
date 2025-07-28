@@ -372,7 +372,7 @@ export default function NewIncidentPage() {
           <div className="space-y-3">
             <label className="block text-lg font-semibold text-gray-900 flex items-center gap-2">
               <MessageCircle className="w-5 h-5 text-blue-600" />
-              Message Type
+              Incident Type
               <span className="text-red-500">*</span>
             </label>
             <select
