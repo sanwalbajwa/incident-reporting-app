@@ -1,7 +1,7 @@
 'use client'
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter, usePathname } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { 
   Home, 
@@ -28,8 +28,35 @@ export default function Header() {
   const pathname = usePathname()
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
+  
+  // Refs for click outside detection
+  const mobileMenuRef = useRef(null)
+  const userMenuRef = useRef(null)
 
   if (!session) return null
+
+  // Close menus when route changes
+  useEffect(() => {
+    setShowMobileMenu(false)
+    setShowUserMenu(false)
+  }, [pathname])
+
+  // Handle click outside to close menus
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target)) {
+        setShowMobileMenu(false)
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setShowUserMenu(false)
+      }
+    }
+
+    if (showMobileMenu || showUserMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showMobileMenu, showUserMenu])
 
   // Get role-specific dashboard URL
   const getDashboardUrl = () => {
@@ -89,14 +116,6 @@ export default function Header() {
   const getNavigationItems = () => {
     const items = []
 
-    // Dashboard (always available)
-    // items.push({
-    //   name: 'Dashboard',
-    //   href: getDashboardUrl(),
-    //   icon: Home,
-    //   active: pathname === getDashboardUrl()
-    // })
-
     if (session.user.role === 'guard') {
       // Guard-specific navigation
       items.push(
@@ -117,7 +136,7 @@ export default function Header() {
       // Supervisor-specific navigation
       items.push(
         {
-          name: 'Guards',
+          name: 'Manage Guards',
           href: '/supervisor/guards',
           icon: Users,
           active: pathname.startsWith('/supervisor/guards')
@@ -130,7 +149,7 @@ export default function Header() {
         }
       )
     } else if (session.user.role === 'management') {
-  // Management-specific navigation
+      // Management-specific navigation
       items.push(
         {
           name: 'Guards',
@@ -164,6 +183,19 @@ export default function Header() {
 
   const navigationItems = getNavigationItems()
 
+  // Handle navigation with proper menu closing
+  const handleNavigation = (href) => {
+    setShowMobileMenu(false)
+    setShowUserMenu(false)
+    router.push(href)
+  }
+
+  const handleSignOut = () => {
+    setShowUserMenu(false)
+    setShowMobileMenu(false)
+    signOut()
+  }
+
   return (
     <header className="bg-white shadow-lg border-b sticky top-0 z-50 backdrop-blur-md bg-white/95 py-4">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -172,7 +204,7 @@ export default function Header() {
           {/* Logo and Brand */}
           <div className="flex items-center py-4">
             <button
-              onClick={() => router.push(getDashboardUrl())}
+              onClick={() => handleNavigation(getDashboardUrl())}
               className="flex items-center space-x-4 hover:opacity-80 transition-all duration-200 group"
             >
               {/* Circular Logo */}
@@ -200,7 +232,7 @@ export default function Header() {
               return (
                 <button
                   key={item.name}
-                  onClick={() => router.push(item.href)}
+                  onClick={() => handleNavigation(item.href)}
                   className={`relative px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 group flex items-center space-x-2 ${
                     item.active
                       ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg transform -translate-y-0.5'
@@ -221,7 +253,7 @@ export default function Header() {
           <div className="flex items-center space-x-4">
 
             {/* User Menu */}
-            <div className="relative">
+            <div className="relative" ref={userMenuRef}>
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className="flex items-center space-x-3 p-2 rounded-xl hover:bg-gray-50 transition-all duration-200 group"
@@ -267,20 +299,14 @@ export default function Header() {
                   </div>
                   <div className="py-2">
                     <button
-                      onClick={() => {
-                        router.push('/profile')
-                        setShowUserMenu(false)
-                      }}
+                      onClick={() => handleNavigation('/profile')}
                       className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
                     >
                       <Settings className="w-4 h-4" />
                       <span>Profile Settings</span>
                     </button>
                     <button
-                      onClick={() => {
-                        signOut()
-                        setShowUserMenu(false)
-                      }}
+                      onClick={handleSignOut}
                       className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
                     >
                       <LogOut className="w-4 h-4" />
@@ -294,7 +320,7 @@ export default function Header() {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className="lg:hidden p-2 text-gray-600 hover:text-gray-900 rounded-xl hover:bg-gray-50 transition-colors"
+              className="lg:hidden p-2 text-gray-600 hover:text-gray-900 rounded-xl hover:bg-gray-50 transition-colors z-50 relative"
             >
               {showMobileMenu ? (
                 <X className="w-6 h-6" />
@@ -307,69 +333,71 @@ export default function Header() {
 
         {/* Mobile Navigation */}
         {showMobileMenu && (
-          <div className="lg:hidden border-t border-gray-200 py-4 bg-gray-50/80 backdrop-blur-sm rounded-b-xl">
-            <div className="flex flex-col space-y-2">
-              {navigationItems.map((item) => {
-                const IconComponent = item.icon
-                return (
-                  <button
-                    key={item.name}
-                    onClick={() => {
-                      router.push(item.href)
-                      setShowMobileMenu(false)
-                    }}
-                    className={`px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all duration-200 mx-2 flex items-center space-x-3 ${
-                      item.active
-                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-white'
-                    }`}
-                  >
-                    <IconComponent className="w-5 h-5" />
-                    <span>{item.name}</span>
-                  </button>
-                )
-              })}
-            </div>
-            
-            {/* Mobile User Info */}
-            <div className="mt-6 pt-4 border-t border-gray-200 mx-2">
-              <div className="flex items-center space-x-3 px-4 py-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-gray-300 to-gray-400 rounded-xl flex items-center justify-center">
-                  <span className="text-gray-700 font-bold">
-                    {session.user.name?.charAt(0)?.toUpperCase() || <User className="w-5 h-5" />}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">{session.user.name}</p>
-                  <p className="text-xs text-gray-500">{session.user.email}</p>
-                  <span className={`inline-flex items-center space-x-1 mt-1 px-2 py-1 rounded-lg text-xs font-bold ${getRoleGradient()}`}>
-                    {getRoleIcon()}
-                    <span>{getRoleDisplay()}</span>
-                  </span>
-                </div>
+          <div 
+            ref={mobileMenuRef}
+            className="lg:hidden absolute left-0 right-0 top-full bg-white border-t border-gray-200 shadow-xl z-40"
+          >
+            <div className="py-4 bg-gray-50/80 backdrop-blur-sm">
+              <div className="flex flex-col space-y-2 px-4">
+                {navigationItems.map((item) => {
+                  const IconComponent = item.icon
+                  return (
+                    <button
+                      key={item.name}
+                      onClick={() => handleNavigation(item.href)}
+                      className={`px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all duration-200 flex items-center space-x-3 ${
+                        item.active
+                          ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
+                          : 'text-gray-600 hover:text-gray-900 hover:bg-white'
+                      }`}
+                    >
+                      <IconComponent className="w-5 h-5" />
+                      <span>{item.name}</span>
+                    </button>
+                  )
+                })}
               </div>
-              <button
-                onClick={() => signOut()}
-                className="w-full px-4 py-3 text-left text-sm font-semibold text-red-600 hover:bg-red-50 rounded-xl mx-2 mt-2 flex items-center space-x-2"
-              >
-                <LogOut className="w-4 h-4" />
-                <span>Sign Out</span>
-              </button>
+              
+              {/* Mobile User Info */}
+              <div className="mt-6 pt-4 border-t border-gray-200 px-4">
+                <div className="flex items-center space-x-3 px-4 py-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-gray-300 to-gray-400 rounded-xl flex items-center justify-center">
+                    <span className="text-gray-700 font-bold">
+                      {session.user.name?.charAt(0)?.toUpperCase() || <User className="w-5 h-5" />}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{session.user.name}</p>
+                    <p className="text-xs text-gray-500">{session.user.email}</p>
+                    <span className={`inline-flex items-center space-x-1 mt-1 px-2 py-1 rounded-lg text-xs font-bold ${getRoleGradient()}`}>
+                      {getRoleIcon()}
+                      <span>{getRoleDisplay()}</span>
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Mobile Profile Settings */}
+                <button
+                  onClick={() => handleNavigation('/profile')}
+                  className="w-full px-4 py-3 text-left text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-xl mt-2 flex items-center space-x-2"
+                >
+                  <Settings className="w-4 h-4" />
+                  <span>Profile Settings</span>
+                </button>
+                
+                {/* Mobile Sign Out */}
+                <button
+                  onClick={handleSignOut}
+                  className="w-full px-4 py-3 text-left text-sm font-semibold text-red-600 hover:bg-red-50 rounded-xl mt-2 flex items-center space-x-2"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Sign Out</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
       </div>
-
-      {/* Click outside to close menus */}
-      {(showUserMenu || showMobileMenu) && (
-        <div 
-          className="fixed inset-0 z-40" 
-          onClick={() => {
-            setShowUserMenu(false)
-            setShowMobileMenu(false)
-          }}
-        />
-      )}
     </header>
   )
 }
