@@ -63,9 +63,19 @@ export async function GET(request) {
         if (message.clientId) {
           client = await clients.findOne({ _id: new ObjectId(message.clientId) })
         }
+        let guardRole = 'guard' // default
+          if (message.guardId) {
+            const users = db.collection('users')
+            const guard = await users.findOne(
+              { _id: new ObjectId(message.guardId) },
+              { projection: { role: 1 } }
+            )
+            guardRole = guard?.role || 'guard'
+          }
         return {
           ...message,
-          client: client ? { name: client.name, location: client.location } : null
+          client: client ? { name: client.name, location: client.location } : null,
+          guardRole: guardRole
         }
       })
     )

@@ -25,7 +25,8 @@ import {
   Building2,
   FileText,
   Search,
-  ExternalLink
+  ExternalLink,
+  UserCheck
 } from 'lucide-react'
 
 export default function SupervisorDashboard() {
@@ -169,6 +170,39 @@ export default function SupervisorDashboard() {
   const getMessageTypeLabel = (messageType) => {
     return messageType === 'communication' ? 'Message' : 'Incident'
   }
+
+  const getUserRoleIcon = (role) => {
+  switch (role) {
+    case 'guard':
+      return <UserCheck className="w-4 h-4 text-blue-800" />
+    case 'rover':
+      return <UserCheck className="w-4 h-4 text-green-600" />
+    default:
+      return <User className="w-4 h-4 text-gray-600" />
+  }
+}
+
+const getUserRoleDisplay = (role) => {
+  switch (role) {
+    case 'guard':
+      return 'Security Guard'
+    case 'rover':
+      return 'Rover'
+    default:
+      return role || 'Guard'
+  }
+}
+
+const getUserRoleColor = (role) => {
+  switch (role) {
+    case 'guard':
+      return 'text-blue-600 bg-blue-100'
+    case 'rover':
+      return 'text-green-600 bg-green-100'
+    default:
+      return 'text-gray-600 bg-gray-100'
+  }
+}
 
   // Filter and search messages
   const filteredMessages = messages.filter(message => {
@@ -423,6 +457,13 @@ export default function SupervisorDashboard() {
                         <div className="flex items-center gap-2">
                           <Clock className="w-4 h-4" />
                           <span className="font-medium">Full Date:</span> {formatDate(message.createdAt)}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {getUserRoleIcon(message.guardRole)}
+                          <span className="font-medium">Role:</span> 
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getUserRoleColor(message.guardRole)}`}>
+                            {getUserRoleDisplay(message.guardRole)}
+                          </span>
                         </div>
                       </div>
                       
