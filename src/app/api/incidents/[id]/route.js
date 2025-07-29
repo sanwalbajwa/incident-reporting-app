@@ -21,14 +21,14 @@ export async function GET(request, { params }) {
       return Response.json({ error: 'Incident not found' }, { status: 404 })
     }
 
-    // Check if this incident belongs to the current guard OR if they are the recipient
+    // Check if this incident belongs to the current guard OR if they are the recipient OR if they are management
     const isOwner = incident.guardId.toString() === session.user.id
     const isRecipient = incident.recipientId === session.user.id || incident.recipientId === session.user.role
+    const isManagement = session.user.role === 'management'
 
-    if (!isOwner && !isRecipient) {
+    if (!isOwner && !isRecipient && !isManagement) {
       return Response.json({ error: 'Access denied' }, { status: 403 })
     }
-    
     return Response.json({ incident })
     
   } catch (error) {

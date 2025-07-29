@@ -193,18 +193,24 @@ export default function ViewIncidentPage({ params }) {
   }
 
   const getBackUrl = () => {
-    if (session?.user?.role === 'security_supervisor') {
-      return '/supervisor-dashboard'
-    }
-    return '/incidents'
+  if (session?.user?.role === 'security_supervisor') {
+    return '/supervisor-dashboard'
   }
+  if (session?.user?.role === 'management') {
+    return '/management/reports'
+  }
+  return '/incidents'
+}
 
-  const getBackLabel = () => {
-    if (session?.user?.role === 'security_supervisor') {
-      return 'Supervisor Dashboard'
-    }
-    return 'My Reports'
+const getBackLabel = () => {
+  if (session?.user?.role === 'security_supervisor') {
+    return 'Supervisor Dashboard'
   }
+  if (session?.user?.role === 'management') {
+    return 'All Reports'
+  }
+  return 'My Reports'
+}
 
   const isMessage = incident?.messageType === 'communication' || incident?.incidentType === 'Communication/Message'
 

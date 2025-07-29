@@ -27,7 +27,7 @@ export async function POST(request) {
     }
 
     // Validate role
-    const validRoles = ['guard', 'security_supervisor', 'maintenance', 'management']
+    const validRoles = ['guard', 'rover', 'security_supervisor', 'maintenance', 'management']
     if (!validRoles.includes(role)) {
       return Response.json(
         { 

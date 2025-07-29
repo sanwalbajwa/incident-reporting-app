@@ -211,9 +211,9 @@ export default function ManagementGuardsPage() {
               <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
                 <Crown className="w-8 h-8 text-blue-600" />
                 <Users className="w-8 h-8 text-blue-600" />
-                Guard Management
+                Guard & Rover Management
               </h1>
-              <p className="text-gray-600 mt-1">Manage all security guards and their shifts</p>
+              <p className="text-gray-600 mt-1">Manage all security guards & rovers and their shifts</p>
             </div>
           </div>
         </div>
@@ -225,7 +225,7 @@ export default function ManagementGuardsPage() {
               <Users className="w-6 h-6 text-white" />
             </div>
             <div className="text-2xl font-bold text-blue-600">{stats.totalGuards}</div>
-            <div className="text-sm text-gray-600 font-medium">Total Guards</div>
+            <div className="text-sm text-gray-600 font-medium">Total Guards & Rovers</div>
           </div>
 
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6 text-center">
@@ -344,6 +344,10 @@ export default function ManagementGuardsPage() {
                                   {guard.phone}
                                 </div>
                               )}
+                              <div className="text-xs text-blue-600 font-medium flex items-center gap-1 mt-1">
+                                <Shield className="w-3 h-3" />
+                                Role: {guard.role === 'rover' ? 'Rover' : 'Guard'}
+                              </div>
                             </div>
                           </div>
                         </td>
@@ -487,6 +491,16 @@ export default function ManagementGuardsPage() {
                           ID: {guard.employeeId}
                         </div>
                       )}
+                      {guard.phone && (
+                        <div className="flex items-center gap-2">
+                          <Phone className="w-4 h-4" />
+                          {guard.phone}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 text-blue-600 font-medium">
+                        <Shield className="w-4 h-4" />
+                        Role: {guard.role === 'rover' ? 'Rover' : 'Guard'}
+                      </div>
                       {guard.isOnDuty && guard.activeShift && (
                         <div className="flex items-center gap-2 text-blue-600">
                           <Timer className="w-4 h-4" />

@@ -192,6 +192,8 @@ export default function ProfilePage() {
         return <Crown className="w-5 h-5 text-blue-600" />
       case 'guard':
         return <UserCheck className="w-5 h-5 text-gray-600" />
+      case 'rover':
+        return <UserCheck className="w-5 h-5 text-green-600" />
       default:
         return <User className="w-5 h-5 text-gray-600" />
     }
@@ -207,6 +209,8 @@ export default function ProfilePage() {
         return 'Management'
       case 'guard':
         return 'Security Guard'
+      case 'rover':
+        return 'Rover'
       default:
         return role
     }
@@ -220,6 +224,8 @@ export default function ProfilePage() {
         return '/maintenance-dashboard'
       case 'management':
         return '/management-dashboard'
+      case 'guard':
+      case 'rover':
       default:
         return '/dashboard'
     }

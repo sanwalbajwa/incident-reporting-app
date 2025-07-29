@@ -30,7 +30,7 @@ export async function GET() {
     // Get all guards
     const guards = await users
       .find({ 
-        role: 'guard',
+        role: { $in: ['guard', 'rover'] },
         isActive: true 
       })
       .project({ 
@@ -39,6 +39,7 @@ export async function GET() {
         email: 1, 
         employeeId: 1,
         phone: 1,
+        role: 1,      // Add this line
         createdAt: 1,
         lastLogin: 1
       })
@@ -109,9 +110,9 @@ export async function POST(request) {
     
     // Verify guard exists
     const guard = await User.findById(guardId)
-    if (!guard || guard.role !== 'guard') {
+    if (!guard || !['guard', 'rover'].includes(guard.role)) {
       return Response.json(
-        { error: 'Guard not found' },
+        { error: 'Guard/Rover not found' },
         { status: 404 }
       )
     }
@@ -239,8 +240,8 @@ export async function DELETE(request) {
     
     // Verify guard exists
     const guard = await User.findById(guardId)
-    if (!guard || guard.role !== 'guard') {
-      return Response.json({ error: 'Guard not found' }, { status: 404 })
+    if (!guard || !['guard', 'rover'].includes(guard.role)) {
+      return Response.json({ error: 'Guard/Rover not found' }, { status: 404 })
     }
     
     // Check if guard has active shift

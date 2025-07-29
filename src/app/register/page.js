@@ -298,9 +298,10 @@ export default function RegisterPage() {
                 className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-200 text-gray-900 ${getFieldErrorStyle('role')}`}
               >
                 <option value="">Select Your Role</option>
-                <option value="guard">🛡️ Security Guard</option>
-                <option value="security_supervisor">👮 Security Supervisor</option>
-                <option value="management">👑 Management</option>
+                <option value="guard">Security Guard</option>
+                <option value="rover">Rover</option>
+                <option value="security_supervisor">Security Supervisor</option>
+                <option value="management">Management</option>
               </select>
             </div>
 

@@ -60,6 +60,7 @@ export default function Home() {
       case 'management':
         return '/management-dashboard'
       case 'guard':
+      case 'rover':
         return '/dashboard'
       default:
         return '/dashboard'
@@ -75,6 +76,8 @@ export default function Home() {
         return 'Management'
       case 'guard':
         return 'Security Guard'
+      case 'rover':
+        return 'Rover'
       default:
         return role
     }
@@ -88,6 +91,8 @@ export default function Home() {
       case 'management':
         return <Crown className="w-6 h-6" />
       case 'guard':
+        return <UserCheck className="w-6 h-6" />
+      case 'rover':
         return <UserCheck className="w-6 h-6" />
       default:
         return <Users className="w-6 h-6" />
@@ -202,6 +207,15 @@ export default function Home() {
               </div>
               <h4 className="font-bold text-gray-900 mb-2">Security Guard</h4>
               <p className="text-sm text-gray-600">Report incidents, manage shifts, view assignments</p>
+            </div>
+
+            {/* Rover Dashboard */}
+            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border border-green-200">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center mx-auto mb-3">
+                <UserCheck className="w-6 h-6 text-white" />
+              </div>
+              <h4 className="font-bold text-green-900 mb-2">Rover</h4>
+              <p className="text-sm text-green-700">Mobile security, report incidents, manage shifts</p>
             </div>
 
             {/* Supervisor Dashboard */}

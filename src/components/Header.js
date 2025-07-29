@@ -77,6 +77,8 @@ export default function Header() {
         return 'Management'
       case 'guard':
         return 'Security Guard'
+      case 'rover':
+        return 'Rover'
       default:
         return session.user.role
     }
@@ -90,6 +92,8 @@ export default function Header() {
       case 'management':
         return <Crown className="w-4 h-4" />
       case 'guard':
+        return <UserCheck className="w-4 h-4" />
+      case 'rover':
         return <UserCheck className="w-4 h-4" />
       default:
         return <User className="w-4 h-4" />
@@ -105,6 +109,8 @@ export default function Header() {
         return 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
       case 'guard':
         return 'bg-gradient-to-r from-gray-600 to-gray-700 text-white'
+      case 'rover':
+        return 'bg-gradient-to-r from-green-600 to-green-700 text-white'
       default:
         return 'bg-gradient-to-r from-gray-600 to-gray-700 text-white'
     }
@@ -114,27 +120,27 @@ export default function Header() {
   const getNavigationItems = () => {
     const items = []
 
-    if (session.user.role === 'guard') {
-      // Guard-specific navigation
-      items.push(
-        {
-          name: 'My Reports',
-          href: '/incidents',
-          icon: FileText,
-          active: pathname.startsWith('/incidents') && pathname !== '/incidents/new'
-        },
-        {
-          name: 'Clients',
-          href: '/clients',
-          icon: Building2,
-          active: pathname === '/clients'
-        }
-      )
-    } else if (session.user.role === 'security_supervisor') {
+    if (session.user.role === 'guard' || session.user.role === 'rover') {
+    // Guard and Rover-specific navigation
+    items.push(
+      {
+        name: 'My Reports',
+        href: '/incidents',
+        icon: FileText,
+        active: pathname.startsWith('/incidents') && pathname !== '/incidents/new'
+      },
+      {
+        name: 'Clients',
+        href: '/clients',
+        icon: Building2,
+        active: pathname === '/clients'
+      }
+    )
+  } else if (session.user.role === 'security_supervisor') {
       // Supervisor-specific navigation
       items.push(
         {
-          name: 'Manage Guards',
+          name: 'Guards & Rovers',
           href: '/supervisor/guards',
           icon: Users,
           active: pathname.startsWith('/supervisor/guards')
@@ -150,7 +156,7 @@ export default function Header() {
       // Management-specific navigation
       items.push(
         {
-          name: 'Guards',
+          name: 'Guards & Rovers',
           href: '/management/guards',
           icon: Users,
           active: pathname.startsWith('/management/guards')

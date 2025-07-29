@@ -37,6 +37,7 @@ export default function LoginPage() {
       // Redirect based on user role
       switch (session.user.role) {
         case 'guard':
+        case 'rover':
           router.push('/dashboard')
           break
         case 'security_supervisor':
