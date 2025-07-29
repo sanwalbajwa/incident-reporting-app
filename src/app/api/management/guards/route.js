@@ -9,7 +9,6 @@ import { ObjectId } from 'mongodb'
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
-    
     if (!session) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 })
     }
