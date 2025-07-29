@@ -17,11 +17,12 @@ export async function GET(request, { params }) {
     
     const incident = await Incident.findById(resolvedParams.id)
     
+    
     if (!incident) {
       return Response.json({ error: 'Incident not found' }, { status: 404 })
     }
 
-    // Check access permissions
+    // Check if this incident belongs to the current guard OR if they are the recipient OR if they are management
     const isOwner = incident.guardId.toString() === session.user.id
     const isRecipient = incident.recipientId === session.user.id || incident.recipientId === session.user.role
     const isManagement = session.user.role === 'management'
@@ -29,35 +30,7 @@ export async function GET(request, { params }) {
     if (!isOwner && !isRecipient && !isManagement) {
       return Response.json({ error: 'Access denied' }, { status: 403 })
     }
-    
-    // Get guard role information - MOVED AFTER ACCESS CHECK
-    try {
-      const client = await clientPromise
-      const db = client.db('incident-reporting-db')
-      const users = db.collection('users')
-      
-      const guard = await users.findOne(
-        { _id: new ObjectId(incident.guardId) },
-        { projection: { role: 1 } }
-      )
-      
-      // Add guard role to the response object, not the original incident
-      const incidentWithRole = {
-        ...incident,
-        guardRole: guard?.role || 'guard'
-      }
-      
-      return Response.json({ incident: incidentWithRole })
-      
-    } catch (roleError) {
-      console.error('Error fetching guard role:', roleError)
-      // If role fetch fails, still return incident with default role
-      const incidentWithRole = {
-        ...incident,
-        guardRole: 'guard'
-      }
-      return Response.json({ incident: incidentWithRole })
-    }
+    return Response.json({ incident })
     
   } catch (error) {
     console.error('Get incident error:', error)
