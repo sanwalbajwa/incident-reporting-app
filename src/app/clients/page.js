@@ -584,10 +584,10 @@ export default function ClientsPage() {
               
                          Contact
                       </th>
+                      {(session?.user?.role === 'security_supervisor' || session?.user?.role === 'management') && (
                       <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
                         Actions
-              
-                       </th>
+                       </th>)}
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-100">
@@ -662,25 +662,9 @@ export default function ClientsPage() {
                     
                          </td>
                         <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => {/* Add view functionality */}}
-                              className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
-                            >
-                              <Eye className="w-4 h-4" />
-                              View
-                            </button>
-                            
+                          <div className="flex items-center gap-2">           
                             {(session?.user?.role === 'security_supervisor' || session?.user?.role === 'management') && (
                               <>
-                                <button
-                                  onClick={() => {/* Add edit functionality */}}
-                                  className="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
-                                >
-                                  <Edit className="w-4 h-4" />
-                                  Edit
-                                </button>
-                                
                                 <button
                                   onClick={() => handleDeleteClient(client._id, client.name)}
                                   disabled={loading}
@@ -691,7 +675,7 @@ export default function ClientsPage() {
                                   ) : (
                                     <Trash2 className="w-4 h-4" />
                                   )}
-                                  
+                                  Delete
                                 </button>
                               </>
                             )}
@@ -750,38 +734,23 @@ export default function ClientsPage() {
           
            
                     <div className="flex gap-2">
-  <button
-    onClick={() => {/* Add view functionality */}}
-    className="flex-1 bg-blue-100 hover:bg-blue-200 text-blue-700 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1"
-  >
-    <Eye className="w-4 h-4" />
-    View
-  </button>
-  
-  {(session?.user?.role === 'security_supervisor' || session?.user?.role === 'management') && (
-    <>
-      <button
-        onClick={() => {/* Add edit functionality */}}
-        className="flex-1 bg-green-100 hover:bg-green-200 text-green-700 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1"
-      >
-        <Edit className="w-4 h-4" />
-        Edit
-      </button>
-      
-      <button
-        onClick={() => handleDeleteClient(client._id, client.name)}
-        disabled={loading}
-        className="bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
-      >
-        {loading ? (
-          <RefreshCw className="w-4 h-4 animate-spin" />
-        ) : (
-          <Trash2 className="w-4 h-4" />
-        )}
-      </button>
-    </>
-  )}
-</div>
+                      {(session?.user?.role === 'security_supervisor' || session?.user?.role === 'management') && (
+                        <>
+                          
+                          <button
+                            onClick={() => handleDeleteClient(client._id, client.name)}
+                            disabled={loading}
+                            className="bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+                          >
+                            {loading ? (
+                              <RefreshCw className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )} Delete
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
