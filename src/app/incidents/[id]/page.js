@@ -192,28 +192,6 @@ export default function ViewIncidentPage({ params }) {
     }
   }
 
- const getReporterRoleDisplay = (incident) => {
-  const role = incident?.guardRole || 'guard'
-  switch (role) {
-    case 'rover':
-      return 'Reporting Rover'
-    case 'guard':
-    default:
-      return 'Reporting Guard'
-  }
-}
-
-const getReporterRoleIcon = (incident) => {
-  const role = incident?.guardRole || 'guard'
-  switch (role) {
-    case 'rover':
-      return <UserCheck className="w-6 h-6 text-green-600" />
-    case 'guard':
-    default:
-      return <Shield className="w-6 h-6 text-blue-600" />
-  }
-}
-
   const getBackUrl = () => {
   if (session?.user?.role === 'security_supervisor') {
     return '/supervisor-dashboard'
@@ -554,27 +532,16 @@ const getBackLabel = () => {
         {/* Guard Information */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-            {getReporterRoleIcon(incident)}
-            {isMessage ? 'Message From' : getReporterRoleDisplay(incident)}
+            <Shield className="w-6 h-6 text-blue-600" />
+            {isMessage ? 'Message From' : 'Reporting Guard'}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <User className="w-4 h-4" />
-                <span className="font-medium">
-                  {incident?.guardRole === 'rover' ? 'Rover Name' : 'Guard Name'}
-                </span>
-              </div>
-              <p className="text-lg font-bold text-gray-900 bg-gray-50 p-3 rounded-xl">{incident.guardName}</p>
-            </div>
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Mail className="w-4 h-4" />
-                <span className="font-medium">
-                  {incident?.guardRole === 'rover' ? 'Rover Email' : 'Guard Email'}
-                </span>
+                <User className="w-4 h-4" />
+                <span className="font-medium">Guard Name</span>
               </div>
-              <p className="text-lg font-bold text-gray-900 bg-gray-50 p-3 rounded-xl">{incident.guardEmail}</p>
+              <p className="text-lg font-bold text-gray-900 bg-gray-50 p-3 rounded-xl">{incident.guardName}</p>
             </div>
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-sm text-gray-600">
