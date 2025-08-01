@@ -1,7 +1,9 @@
+// src/app/login/page.js - Enhanced with device blocking error handling
+
 'use client'
 import { useState, useEffect } from 'react'
 import { signIn, useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { 
   Mail, 
@@ -15,7 +17,9 @@ import {
   User,
   Users,
   Crown,
-  HardHat
+  HardHat,
+  Smartphone,
+  Tablet
 } from 'lucide-react'
 
 export default function LoginPage() {
@@ -24,17 +28,30 @@ export default function LoginPage() {
     password: ''
   })
   const [error, setError] = useState('')
+  const [errorType, setErrorType] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { data: session, status } = useSession()
+
+  // Check for URL parameters (like error from NextAuth)
+  useEffect(() => {
+    const urlError = searchParams.get('error')
+    if (urlError) {
+      if (urlError.includes('DEVICE_BLOCKED')) {
+        const deviceType = urlError.split(':')[1] || 'mobile'
+        setError('Access restricted to company tablets only')
+        setErrorType('DEVICE_BLOCKED')
+      }
+    }
+  }, [searchParams])
 
   // Redirect based on role when session is available
   useEffect(() => {
-    if (status === 'loading') return // Still loading
+    if (status === 'loading') return
 
     if (session) {
-      // Redirect based on user role
       switch (session.user.role) {
         case 'guard':
         case 'rover':
@@ -59,18 +76,37 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setErrorType('')
 
-    const result = await signIn('credentials', {
-      email: formData.email,
-      password: formData.password,
-      redirect: false
-    })
+    try {
+      const result = await signIn('credentials', {
+        email: formData.email,
+        password: formData.password,
+        redirect: false
+      })
 
-    if (result?.error) {
-      setError('Invalid email or password')
-      setLoading(false)
-    } else {
-      // Don't manually redirect here - let useEffect handle it based on role
+      if (result?.error) {
+        // Handle specific error types
+        if (result.error.includes('CredentialsSignin')) {
+          setError('Invalid email or password')
+          setErrorType('INVALID_CREDENTIALS')
+        } else if (result.error.includes('DEVICE_BLOCKED')) {
+          const deviceType = result.error.split(':')[1] || 'mobile'
+          setError('Access restricted to company tablets only')
+          setErrorType('DEVICE_BLOCKED')
+        } else {
+          setError('Login failed. Please try again.')
+          setErrorType('GENERAL_ERROR')
+        }
+        setLoading(false)
+      } else {
+        // Success - let useEffect handle redirect
+        setLoading(false)
+      }
+    } catch (error) {
+      console.error('Login error:', error)
+      setError('Network error. Please check your connection.')
+      setErrorType('NETWORK_ERROR')
       setLoading(false)
     }
   }
@@ -81,7 +117,10 @@ export default function LoginPage() {
       [e.target.name]: e.target.value
     })
     // Clear error when user starts typing
-    if (error) setError('')
+    if (error) {
+      setError('')
+      setErrorType('')
+    }
   }
 
   // Show loading while checking session
@@ -110,12 +149,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center p-4">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-600/20 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-indigo-400/20 to-pink-600/20 rounded-full blur-3xl"></div>
-      </div>
-
       <div className="relative z-10 w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
@@ -134,6 +167,7 @@ export default function LoginPage() {
         {/* Main Form Card */}
         <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
+            
             {/* Email Field */}
             <div className="space-y-2">
               <label className="block text-sm font-bold text-gray-700 flex items-center gap-2">
@@ -181,12 +215,43 @@ export default function LoginPage() {
 
             {/* Error Message */}
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+              <div className={`rounded-xl p-4 border ${
+                errorType === 'DEVICE_BLOCKED' 
+                  ? 'bg-red-50 border-red-200' 
+                  : 'bg-red-50 border-red-200'
+              }`}>
                 <div className="flex items-start">
-                  <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 mr-3 flex-shrink-0" />
-                  <div>
-                    <p className="text-red-800 font-medium">{error}</p>
-                    <p className="text-red-600 text-sm mt-1">Please check your credentials and try again.</p>
+                  <div className="flex-shrink-0">
+                    {errorType === 'DEVICE_BLOCKED' ? (
+                      <Smartphone className="w-5 h-5 text-red-600 mt-0.5" />
+                    ) : (
+                      <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
+                    )}
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-red-800 font-medium mb-1">
+                      {errorType === 'DEVICE_BLOCKED' ? 'Device Not Allowed' : 'Login Failed'}
+                    </h3>
+                    <p className="text-red-700 text-sm">{error}</p>
+                    
+                    {errorType === 'DEVICE_BLOCKED' && (
+                      <div className="mt-3 p-3 bg-red-100 rounded-lg border border-red-200">
+                        <div className="flex items-center gap-2 text-red-800 text-sm font-medium mb-2">
+                          <Tablet className="w-4 h-4" />
+                          Allowed Devices:
+                        </div>
+                        <ul className="text-red-700 text-sm space-y-1">
+                          <li>• Company tablets</li>
+                          <li>• Desktop computers</li>
+                          <li>• Laptop computers</li>
+                        </ul>
+                        <div className="mt-2 pt-2 border-t border-red-200">
+                          <p className="text-red-600 text-xs">
+                            📱 Personal mobile phones are not permitted for security reasons.
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -222,6 +287,19 @@ export default function LoginPage() {
               >
                 Create Account
               </Link>
+            </p>
+          </div>
+        </div>
+
+        {/* Company Device Notice */}
+        <div className="mt-6 text-center">
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+            <div className="flex items-center justify-center gap-2 text-blue-800 text-sm font-medium mb-2">
+              <Tablet className="w-4 h-4" />
+              Company Device Required
+            </div>
+            <p className="text-blue-700 text-xs">
+              This system is restricted to company tablets and computers only.
             </p>
           </div>
         </div>

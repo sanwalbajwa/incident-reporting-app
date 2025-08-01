@@ -1,6 +1,9 @@
+// src/lib/auth.js - Enhanced with device detection
+
 import CredentialsProvider from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
 import { User } from '@/models/User'
+import { isAllowedDevice, getDeviceInfo } from '@/lib/deviceDetection'
 
 export const authOptions = {
   providers: [
@@ -10,9 +13,9 @@ export const authOptions = {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' }
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         try {
-          console.log('=== AUTH DEBUG START ===')
+          console.log('=== AUTH WITH DEVICE DETECTION DEBUG START ===')
           console.log('Login attempt for email:', credentials?.email)
           
           if (!credentials?.email || !credentials?.password) {
@@ -20,6 +23,22 @@ export const authOptions = {
             return null
           }
 
+          // Get user agent from request headers
+          const userAgent = req.headers?.['user-agent'] || ''
+          console.log('User Agent:', userAgent)
+          
+          // Get device information
+          const deviceInfo = getDeviceInfo(userAgent)
+          console.log('Device Info:', deviceInfo)
+          
+          // Check if device is allowed (block mobile phones)
+          if (!deviceInfo.isAllowed) {
+            console.log('Device blocked:', deviceInfo.deviceType)
+            // Return a special error object that can be handled by callbacks
+            throw new Error(`DEVICE_BLOCKED:${deviceInfo.deviceType}`)
+          }
+
+          // Continue with normal authentication
           const user = await User.findByEmail(credentials.email)
           console.log('User found:', !!user)
           
@@ -39,15 +58,31 @@ export const authOptions = {
             return null
           }
 
+          // Log successful login with device info
           console.log('Authentication successful for:', user.email)
+          console.log('Device type allowed:', deviceInfo.deviceType)
+          
+          // Update user's last login
+          await User.updateLastLogin(user._id.toString())
+          
           return {
             id: user._id.toString(),
             email: user.email,
             name: user.fullName,
             role: user.role,
+            deviceType: deviceInfo.deviceType // Include device type in session
           }
         } catch (error) {
           console.error('Auth error:', error)
+          
+          // Handle device blocking errors specifically
+          if (error.message.startsWith('DEVICE_BLOCKED:')) {
+            const deviceType = error.message.split(':')[1]
+            console.log('Blocking device type:', deviceType)
+            // This error will be caught by the error callback
+            throw error
+          }
+          
           return null
         }
       }
@@ -61,6 +96,7 @@ export const authOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.role = user.role
+        token.deviceType = user.deviceType
       }
       return token
     },
@@ -68,6 +104,7 @@ export const authOptions = {
       if (token) {
         session.user.id = token.sub
         session.user.role = token.role
+        session.user.deviceType = token.deviceType
       }
       return session
     },
@@ -76,5 +113,5 @@ export const authOptions = {
     signIn: '/login',
     error: '/login',
   },
-  debug: true, // Enable debug logs
+  debug: true,
 }
