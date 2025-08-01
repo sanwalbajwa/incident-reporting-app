@@ -1,7 +1,7 @@
-// src/app/login/page.js - Enhanced with device blocking error handling
+// src/app/login/page.js - Fixed with Suspense boundary
 
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { signIn, useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -22,7 +22,8 @@ import {
   Tablet
 } from 'lucide-react'
 
-export default function LoginPage() {
+// Separate component for handling search params
+function LoginForm() {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -305,5 +306,26 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+// Loading component for Suspense fallback
+function LoginLoading() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+      <div className="text-center bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/20">
+        <div className="animate-spin rounded-full h-12 w-12 border-3 border-blue-600 border-t-transparent mx-auto"></div>
+        <p className="mt-4 text-gray-600 font-medium">Loading login...</p>
+      </div>
+    </div>
+  )
+}
+
+// Main page component with Suspense boundary
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginLoading />}>
+      <LoginForm />
+    </Suspense>
   )
 }
