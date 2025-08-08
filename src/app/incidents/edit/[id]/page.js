@@ -89,6 +89,11 @@ export default function EditIncidentPage({ params }) {
     locationDescription: '',
     description: '',
     incidentOriginatedBy: 'Property',
+    policeInvolved: false,
+    policeReportFiled: false,
+    policeReportNumber: '',
+    officerName: '',
+    officerBadge: '',
     attachments: []
   })
 
@@ -158,7 +163,15 @@ export default function EditIncidentPage({ params }) {
         const hasRecipientInfo = incident.recipientInfo && incident.recipientInfo.type
         const useGroupSelection = hasRecipientInfo && incident.recipientInfo.type === 'group'
         
-        // Populate form with incident data
+        console.log('Loading incident with police data:', {
+          policeInvolved: incident.policeInvolved,
+          policeReportFiled: incident.policeReportFiled,
+          policeReportNumber: incident.policeReportNumber,
+          officerName: incident.officerName,
+          officerBadge: incident.officerBadge
+        })
+        
+        // Populate form with incident data - FIXED: Properly load police fields
         setFormData({
           recipientIds: useGroupSelection ? [] : (incident.recipientId ? [incident.recipientId] : []),
           recipientGroups: hasRecipientInfo ? (incident.recipientInfo.groups || []) : [],
@@ -172,8 +185,24 @@ export default function EditIncidentPage({ params }) {
           locationWithinProperty: incident.withinProperty ?? true,
           locationDescription: incident.location || '',
           description: incident.description || '',
-          incidentOriginatedBy: incident.incidentOriginatedBy || 'Property', // Fix: ensure this loads correctly
+          incidentOriginatedBy: incident.incidentOriginatedBy || 'Property',
+          
+          // FIXED: Properly load police fields with correct boolean handling
+          policeInvolved: Boolean(incident.policeInvolved), // Ensure boolean
+          policeReportFiled: Boolean(incident.policeReportFiled), // Ensure boolean
+          policeReportNumber: incident.policeReportNumber || '',
+          officerName: incident.officerName || '',
+          officerBadge: incident.officerBadge || '',
+          
           attachments: incident.attachments || []
+        })
+        
+        console.log('Form data set with police fields:', {
+          policeInvolved: Boolean(incident.policeInvolved),
+          policeReportFiled: Boolean(incident.policeReportFiled),
+          policeReportNumber: incident.policeReportNumber || '',
+          officerName: incident.officerName || '',
+          officerBadge: incident.officerBadge || ''
         })
       } else {
         alert('Incident not found')
@@ -838,6 +867,133 @@ export default function EditIncidentPage({ params }) {
               }
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
             />
+          </div>
+          
+          {/* Police Information Section */}
+          <div className="space-y-6 border-t border-gray-200 pt-8">
+            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+              Police Involvement
+            </h3>
+            
+            {/* Were police called/involved? */}
+            <div className="space-y-3">
+              <label className="block text-lg font-semibold text-gray-900">
+                Were police called/involved?
+              </label>
+              <div className="space-y-2">
+                <label className="flex items-center p-3 bg-gray-50 rounded-xl border cursor-pointer hover:bg-gray-100 transition-colors">
+                  <input
+                    type="radio"
+                    name="policeInvolved"
+                    checked={formData.policeInvolved === true}
+                    onChange={() => setFormData(prev => ({...prev, policeInvolved: true}))}
+                    className="mr-3 w-4 h-4 text-red-600"
+                  />
+                  <span className="font-medium text-gray-800">Yes, police were called/involved</span>
+                </label>
+                <label className="flex items-center p-3 bg-gray-50 rounded-xl border cursor-pointer hover:bg-gray-100 transition-colors">
+                  <input
+                    type="radio"
+                    name="policeInvolved"
+                    checked={formData.policeInvolved === false}
+                    onChange={() => setFormData(prev => ({...prev, policeInvolved: false}))}
+                    className="mr-3 w-4 h-4 text-gray-600"
+                  />
+                  <span className="font-medium text-gray-800">No, police were not involved</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Show additional fields only if police were involved */}
+            {formData.policeInvolved && (
+              <>
+                {/* Is there a police report? */}
+                <div className="space-y-3">
+                  <label className="block text-lg font-semibold text-gray-900">
+                    Is there a police report?
+                  </label>
+                  <div className="space-y-2">
+                    <label className="flex items-center p-3 bg-blue-50 rounded-xl border border-blue-200 cursor-pointer hover:bg-blue-100 transition-colors">
+                      <input
+                        type="radio"
+                        name="policeReportFiled"
+                        checked={formData.policeReportFiled === true}
+                        onChange={() => setFormData(prev => ({...prev, policeReportFiled: true}))}
+                        className="mr-3 w-4 h-4 text-blue-600"
+                      />
+                      <span className="font-medium text-blue-800">Yes, police report was filed</span>
+                    </label>
+                    <label className="flex items-center p-3 bg-gray-50 rounded-xl border cursor-pointer hover:bg-gray-100 transition-colors">
+                      <input
+                        type="radio"
+                        name="policeReportFiled"
+                        checked={formData.policeReportFiled === false}
+                        onChange={() => setFormData(prev => ({...prev, policeReportFiled: false}))}
+                        className="mr-3 w-4 h-4 text-gray-600"
+                      />
+                      <span className="font-medium text-gray-800">No, no police report filed</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Police Report Details - Show only if report was filed */}
+                {formData.policeReportFiled && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 space-y-4">
+                    <h4 className="font-bold text-blue-900 mb-4">Police Report Details</h4>
+                    
+                    <div className="space-y-2">
+                      <label className="block text-sm font-semibold text-blue-800">
+                        Police Report Number
+                      </label>
+                      <input
+                        type="text"
+                        name="policeReportNumber"
+                        value={formData.policeReportNumber}
+                        onChange={handleChange}
+                        placeholder="Enter police report number (e.g., PR-2024-12345)"
+                        className="w-full px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Officer Information */}
+                <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 space-y-4">
+                  <h4 className="font-bold text-yellow-900 mb-4">Officer Information (If Known)</h4>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="block text-sm font-semibold text-yellow-800">
+                        Officer Name
+                      </label>
+                      <input
+                        type="text"
+                        name="officerName"
+                        value={formData.officerName}
+                        onChange={handleChange}
+                        placeholder="Officer's name (if known)"
+                        className="w-full px-4 py-3 border border-yellow-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 bg-white"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="block text-sm font-semibold text-yellow-800">
+                        Officer Badge/ID
+                      </label>
+                      <input
+                        type="text"
+                        name="officerBadge"
+                        value={formData.officerBadge}
+                        onChange={handleChange}
+                        placeholder="Badge number or ID (if known)"
+                        className="w-full px-4 py-3 border border-yellow-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 bg-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Existing Attachments */}

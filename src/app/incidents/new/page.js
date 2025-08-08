@@ -88,6 +88,11 @@ export default function NewIncidentPage() {
     locationDescription: '',
     description: '',
     incidentOriginatedBy: 'Property',
+    policeInvolved: false,
+    policeReportFiled: false,
+    policeReportNumber: '',
+    officerName: '',
+    officerBadge: '',
     attachments: []
   })
 
@@ -766,6 +771,206 @@ export default function NewIncidentPage() {
               }
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
             />
+          </div>
+          
+          {/* Police Information Section */}
+          <div className="space-y-6 border-t border-gray-200 pt-8">
+            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+              Police Involvement
+            </h3>
+            
+            {/* Were police called/involved? - FIXED HANDLERS */}
+            <div className="space-y-3">
+              <label className="block text-lg font-semibold text-gray-900">
+                Were police called/involved?
+              </label>
+              <div className="space-y-2">
+                <label className="flex items-center p-3 bg-gray-50 rounded-xl border cursor-pointer hover:bg-gray-100 transition-colors">
+                  <input
+                    type="radio"
+                    name="policeInvolved"
+                    value="true"
+                    checked={formData.policeInvolved === true}
+                    onChange={() => {
+                      console.log('Setting policeInvolved to TRUE')
+                      setFormData(prev => ({...prev, policeInvolved: true}))
+                    }}
+                    className="mr-3 w-4 h-4 text-red-600"
+                  />
+                  <span className="font-medium text-gray-800">Yes, police were called/involved</span>
+                </label>
+                <label className="flex items-center p-3 bg-gray-50 rounded-xl border cursor-pointer hover:bg-gray-100 transition-colors">
+                  <input
+                    type="radio"
+                    name="policeInvolved"
+                    value="false"
+                    checked={formData.policeInvolved === false}
+                    onChange={() => {
+                      console.log('Setting policeInvolved to FALSE')
+                      setFormData(prev => ({
+                        ...prev, 
+                        policeInvolved: false,
+                        policeReportFiled: false,
+                        policeReportNumber: '',
+                        officerName: '',
+                        officerBadge: ''
+                      }))
+                    }}
+                    className="mr-3 w-4 h-4 text-gray-600"
+                  />
+                  <span className="font-medium text-gray-800">No, police were not involved</span>
+                </label>
+              </div>
+              
+              {/* DEBUG DISPLAY */}
+              <div className="text-xs text-gray-500 bg-yellow-50 p-2 rounded border">
+                DEBUG: policeInvolved = {JSON.stringify(formData.policeInvolved)} (type: {typeof formData.policeInvolved})
+              </div>
+            </div>
+
+            {/* Show additional fields only if police were involved */}
+            {formData.policeInvolved === true && (
+              <>
+                {/* Is there a police report? - FIXED HANDLERS */}
+                <div className="space-y-3">
+                  <label className="block text-lg font-semibold text-gray-900">
+                    Is there a police report?
+                  </label>
+                  <div className="space-y-2">
+                    <label className="flex items-center p-3 bg-blue-50 rounded-xl border border-blue-200 cursor-pointer hover:bg-blue-100 transition-colors">
+                      <input
+                        type="radio"
+                        name="policeReportFiled"
+                        value="true"
+                        checked={formData.policeReportFiled === true}
+                        onChange={() => {
+                          console.log('Setting policeReportFiled to TRUE')
+                          setFormData(prev => ({...prev, policeReportFiled: true}))
+                        }}
+                        className="mr-3 w-4 h-4 text-blue-600"
+                      />
+                      <span className="font-medium text-blue-800">Yes, police report was filed</span>
+                    </label>
+                    <label className="flex items-center p-3 bg-gray-50 rounded-xl border cursor-pointer hover:bg-gray-100 transition-colors">
+                      <input
+                        type="radio"
+                        name="policeReportFiled"
+                        value="false"
+                        checked={formData.policeReportFiled === false}
+                        onChange={() => {
+                          console.log('Setting policeReportFiled to FALSE')
+                          setFormData(prev => ({
+                            ...prev, 
+                            policeReportFiled: false,
+                            policeReportNumber: ''
+                          }))
+                        }}
+                        className="mr-3 w-4 h-4 text-gray-600"
+                      />
+                      <span className="font-medium text-gray-800">No, no police report filed</span>
+                    </label>
+                  </div>
+                  
+                  {/* DEBUG DISPLAY */}
+                  <div className="text-xs text-gray-500 bg-yellow-50 p-2 rounded border">
+                    DEBUG: policeReportFiled = {JSON.stringify(formData.policeReportFiled)} (type: {typeof formData.policeReportFiled})
+                  </div>
+                </div>
+
+                {/* Police Report Details - Show only if report was filed */}
+                {formData.policeReportFiled === true && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 space-y-4">
+                    <h4 className="font-bold text-blue-900 mb-4">Police Report Details</h4>
+                    
+                    <div className="space-y-2">
+                      <label className="block text-sm font-semibold text-blue-800">
+                        Police Report Number
+                      </label>
+                      <input
+                        type="text"
+                        name="policeReportNumber"
+                        value={formData.policeReportNumber}
+                        onChange={(e) => {
+                          console.log('Police report number changed:', e.target.value)
+                          setFormData(prev => ({...prev, policeReportNumber: e.target.value}))
+                        }}
+                        placeholder="Enter police report number (e.g., PR-2024-12345)"
+                        className="w-full px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                      />
+                      
+                      {/* DEBUG DISPLAY */}
+                      <div className="text-xs text-gray-500 bg-yellow-50 p-2 rounded border">
+                        DEBUG: policeReportNumber = "{formData.policeReportNumber}" (length: {formData.policeReportNumber?.length || 0})
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Officer Information */}
+                <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 space-y-4">
+                  <h4 className="font-bold text-yellow-900 mb-4">Officer Information (If Known)</h4>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="block text-sm font-semibold text-yellow-800">
+                        Officer Name
+                      </label>
+                      <input
+                        type="text"
+                        name="officerName"
+                        value={formData.officerName}
+                        onChange={(e) => {
+                          console.log('Officer name changed:', e.target.value)
+                          setFormData(prev => ({...prev, officerName: e.target.value}))
+                        }}
+                        placeholder="Officer's name (if known)"
+                        className="w-full px-4 py-3 border border-yellow-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 bg-white"
+                      />
+                      
+                      {/* DEBUG DISPLAY */}
+                      <div className="text-xs text-gray-500 bg-yellow-50 p-1 rounded border">
+                        DEBUG: officerName = "{formData.officerName}" (length: {formData.officerName?.length || 0})
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="block text-sm font-semibold text-yellow-800">
+                        Officer Badge/ID
+                      </label>
+                      <input
+                        type="text"
+                        name="officerBadge"
+                        value={formData.officerBadge}
+                        onChange={(e) => {
+                          console.log('Officer badge changed:', e.target.value)
+                          setFormData(prev => ({...prev, officerBadge: e.target.value}))
+                        }}
+                        placeholder="Badge number or ID (if known)"
+                        className="w-full px-4 py-3 border border-yellow-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 bg-white"
+                      />
+                      
+                      {/* DEBUG DISPLAY */}
+                      <div className="text-xs text-gray-500 bg-yellow-50 p-1 rounded border">
+                        DEBUG: officerBadge = "{formData.officerBadge}" (length: {formData.officerBadge?.length || 0})
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+            
+            {/* Overall DEBUG DISPLAY */}
+            <div className="text-xs text-gray-600 bg-gray-50 p-3 rounded border">
+              <strong>ALL POLICE FIELDS DEBUG:</strong><br/>
+              {JSON.stringify({
+                policeInvolved: formData.policeInvolved,
+                policeReportFiled: formData.policeReportFiled,
+                policeReportNumber: formData.policeReportNumber,
+                officerName: formData.officerName,
+                officerBadge: formData.officerBadge
+              }, null, 2)}
+            </div>
           </div>
 
           {/* Attachments */}

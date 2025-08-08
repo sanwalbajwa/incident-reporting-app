@@ -14,6 +14,34 @@ export class Incident {
     const newIncident = {
       ...incidentData,
       incidentId,
+      guardId: incidentData.guardId,
+      guardName: incidentData.guardName,
+      guardEmail: incidentData.guardEmail,
+      clientId: incidentData.clientId,
+      incidentType: incidentData.incidentType,
+      priority: incidentData.priority || 'normal',
+      incidentDate: incidentData.incidentDate,
+      incidentTime: incidentData.incidentTime,
+      incidentDateTime: incidentData.incidentDateTime,
+      withinProperty: incidentData.withinProperty,
+      location: incidentData.location,
+      incidentOriginatedBy: incidentData.incidentOriginatedBy,
+      description: incidentData.description,
+    
+      // FIXED: Properly include police fields with defaults
+      policeInvolved: incidentData.policeInvolved || false,
+      policeReportFiled: incidentData.policeReportFiled || false,
+      policeReportNumber: incidentData.policeReportNumber || '',
+      officerName: incidentData.officerName || '',
+      officerBadge: incidentData.officerBadge || '',
+      
+      attachments: incidentData.attachments || [],
+      recipientId: incidentData.recipientId,
+      recipientName: incidentData.recipientName,
+      recipientEmail: incidentData.recipientEmail,
+      recipientRole: incidentData.recipientRole,
+      recipientInfo: incidentData.recipientInfo,
+      messageType: incidentData.messageType || 'incident',
       status: 'submitted',
       createdAt: new Date(),
       updatedAt: new Date()
@@ -32,43 +60,43 @@ export class Incident {
   }
   
   static async findByGuard(guardId, limit = 10) {
-  const client = await clientPromise
-  const db = client.db('incident-reporting-db')
-  const incidents = db.collection('incidents')
-  
-  console.log('Searching for incidents with guardId:', guardId)
-  console.log('guardId type:', typeof guardId)
-  
-  // Get all incidents first to debug
-  const allIncidents = await incidents.find({}).toArray()
-  console.log('All incidents guardIds:', allIncidents.map(inc => ({
-    id: inc._id,
-    guardId: inc.guardId,
-    guardIdType: typeof inc.guardId
-  })))
-  
-  // Try multiple query formats
-  const queries = [
-    { guardId: guardId }, // String format
-    { guardId: new ObjectId(guardId) }, // ObjectId format
-  ]
-  
-  // Test each query
-  for (let i = 0; i < queries.length; i++) {
-    const query = queries[i]
-    console.log(`Testing query ${i + 1}:`, query)
-    const result = await incidents.find(query).toArray()
-    console.log(`Query ${i + 1} results:`, result.length)
+    const client = await clientPromise
+    const db = client.db('incident-reporting-db')
+    const incidents = db.collection('incidents')
     
-    if (result.length > 0) {
-      return result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, limit)
+    console.log('Searching for incidents with guardId:', guardId)
+    console.log('guardId type:', typeof guardId)
+    
+    // Get all incidents first to debug
+    const allIncidents = await incidents.find({}).toArray()
+    console.log('All incidents guardIds:', allIncidents.map(inc => ({
+      id: inc._id,
+      guardId: inc.guardId,
+      guardIdType: typeof inc.guardId
+    })))
+    
+    // Try multiple query formats
+    const queries = [
+      { guardId: guardId }, // String format
+      { guardId: new ObjectId(guardId) }, // ObjectId format
+    ]
+    
+    // Test each query
+    for (let i = 0; i < queries.length; i++) {
+      const query = queries[i]
+      console.log(`Testing query ${i + 1}:`, query)
+      const result = await incidents.find(query).toArray()
+      console.log(`Query ${i + 1} results:`, result.length)
+      
+      if (result.length > 0) {
+        return result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, limit)
+      }
     }
+    
+    // If no results, return empty array
+    console.log('No incidents found for guardId:', guardId)
+    return []
   }
-  
-  // If no results, return empty array
-  console.log('No incidents found for guardId:', guardId)
-  return []
-}
   
   static async findByClient(clientId, limit = 10) {
     const client = await clientPromise

@@ -22,7 +22,7 @@ import {
   Hash,
   Image,
   Download,
-  X
+  X,
 } from 'lucide-react'
 
 export default function ViewIncidentPage({ params }) {
@@ -460,6 +460,131 @@ const getBackLabel = () => {
             <p className="text-gray-900 whitespace-pre-wrap leading-relaxed">{incident.description}</p>
           </div>
         </div>
+
+        {/* Police Information Section */}
+        {(incident.policeInvolved === true || 
+          incident.policeInvolved === false || 
+          incident.policeReportFiled || 
+          incident.policeReportNumber || 
+          incident.officerName || 
+          incident.officerBadge) && (
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <AlertTriangle className="w-7 h-7 text-red-600" />
+              Police Involvement
+            </h2>
+            
+            <div className="space-y-6">
+              {/* Police Involved Status - Always show if we have police data */}
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200">
+                <span className="font-medium text-gray-700">Police Called/Involved:</span>
+                <span className={`inline-flex items-center gap-2 px-3 py-1 text-sm font-bold rounded-full border ${
+                  incident.policeInvolved === true 
+                    ? 'bg-red-100 text-red-800 border-red-200' 
+                    : 'bg-gray-100 text-gray-800 border-gray-200'
+                }`}>
+                  {incident.policeInvolved === true ? (
+                    <>
+                      <CheckCircle className="w-4 h-4" />
+                      Yes
+                    </>
+                  ) : (
+                    <>
+                      <X className="w-4 h-4" />
+                      No
+                    </>
+                  )}
+                </span>
+              </div>
+
+              {/* Show police details only if police were involved */}
+              {incident.policeInvolved === true && (
+                <>
+                  {/* Police Report Status */}
+                  <div className="flex items-center justify-between p-4 bg-blue-50 rounded-xl border border-blue-200">
+                    <span className="font-medium text-blue-700">Police Report Filed:</span>
+                    <span className={`inline-flex items-center gap-2 px-3 py-1 text-sm font-bold rounded-full border ${
+                      incident.policeReportFiled === true 
+                        ? 'bg-blue-100 text-blue-800 border-blue-200' 
+                        : 'bg-gray-100 text-gray-800 border-gray-200'
+                    }`}>
+                      {incident.policeReportFiled === true ? (
+                        <>
+                          <FileText className="w-4 h-4" />
+                          Yes
+                        </>
+                      ) : (
+                        <>
+                          <X className="w-4 h-4" />
+                          No
+                        </>
+                      )}
+                    </span>
+                  </div>
+
+                  {/* Police Report Number */}
+                  {incident.policeReportFiled === true && incident.policeReportNumber && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                      <div className="flex items-center gap-2 text-blue-800 mb-2">
+                        <Hash className="w-4 h-4" />
+                        <span className="font-medium">Police Report Number</span>
+                      </div>
+                      <div className="text-lg font-bold text-blue-900 bg-white p-3 rounded-lg border border-blue-200">
+                        {incident.policeReportNumber}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Officer Information */}
+                  {(incident.officerName || incident.officerBadge) && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
+                      <h3 className="text-lg font-bold text-yellow-900 mb-4 flex items-center gap-2">
+                        <Shield className="w-5 h-5" />
+                        Officer Information
+                      </h3>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {incident.officerName && (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-yellow-800">
+                              <User className="w-4 h-4" />
+                              <span className="font-medium">Officer Name</span>
+                            </div>
+                            <div className="text-lg font-bold text-yellow-900 bg-white p-3 rounded-lg border border-yellow-200">
+                              {incident.officerName}
+                            </div>
+                          </div>
+                        )}
+
+                        {incident.officerBadge && (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-yellow-800">
+                              <Hash className="w-4 h-4" />
+                              <span className="font-medium">Badge/ID Number</span>
+                            </div>
+                            <div className="text-lg font-bold text-yellow-900 bg-white p-3 rounded-lg border border-yellow-200">
+                              {incident.officerBadge}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* No Police Involvement Message */}
+              {incident.policeInvolved === false && (
+                <div className="text-center py-6">
+                  <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                    <Shield className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <p className="text-gray-500 font-medium">No police involvement reported</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Attachments */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6">

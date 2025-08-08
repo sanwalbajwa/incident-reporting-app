@@ -42,6 +42,7 @@ export async function GET(request, { params }) {
 }
 
 // PUT update incident
+// PUT update incident
 export async function PUT(request, { params }) {
   try {
     // Await params in Next.js 15
@@ -56,7 +57,13 @@ export async function PUT(request, { params }) {
     const incidentData = await request.json()
     
     console.log('Updating incident ID:', resolvedParams.id)
-    console.log('Update data:', incidentData)
+    console.log('Update data with police fields:', {
+      policeInvolved: incidentData.policeInvolved,
+      policeReportFiled: incidentData.policeReportFiled,
+      policeReportNumber: incidentData.policeReportNumber,
+      officerName: incidentData.officerName,
+      officerBadge: incidentData.officerBadge
+    })
     
     // Get existing incident
     const existingIncident = await Incident.findById(resolvedParams.id)
@@ -95,10 +102,24 @@ export async function PUT(request, { params }) {
       clientId: typeof incidentData.clientId === 'string' && incidentData.clientId.match(/^[0-9a-fA-F]{24}$/) 
         ? new ObjectId(incidentData.clientId) 
         : incidentData.clientId,
+        
+      // FIXED: Properly handle police fields with explicit boolean conversion
+      policeInvolved: Boolean(incidentData.policeInvolved),
+      policeReportFiled: Boolean(incidentData.policeReportFiled),
+      policeReportNumber: incidentData.policeReportNumber || '',
+      officerName: incidentData.officerName || '',
+      officerBadge: incidentData.officerBadge || '',
+      
       updatedAt: new Date()
     }
     
-    console.log('Prepared update data:', updateData)
+    console.log('Prepared update data with police fields:', {
+      policeInvolved: updateData.policeInvolved,
+      policeReportFiled: updateData.policeReportFiled,
+      policeReportNumber: updateData.policeReportNumber,
+      officerName: updateData.officerName,
+      officerBadge: updateData.officerBadge
+    })
     
     const result = await Incident.updateIncident(resolvedParams.id, updateData)
     
@@ -110,6 +131,14 @@ export async function PUT(request, { params }) {
     
     // Get updated incident
     const updatedIncident = await Incident.findById(resolvedParams.id)
+    
+    console.log('Updated incident police data:', {
+      policeInvolved: updatedIncident.policeInvolved,
+      policeReportFiled: updatedIncident.policeReportFiled,
+      policeReportNumber: updatedIncident.policeReportNumber,
+      officerName: updatedIncident.officerName,
+      officerBadge: updatedIncident.officerBadge
+    })
     
     return Response.json({
       message: 'Incident updated successfully',

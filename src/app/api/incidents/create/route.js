@@ -1,4 +1,4 @@
-// Update: src/app/api/incidents/create/route.js - Enhanced with multi-recipient support
+// Update: src/app/api/incidents/create/route.js - Enhanced with police fields support
 
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -21,7 +21,9 @@ export async function POST(request) {
       recipientType: incidentData.recipientType,
       recipientIds: incidentData.recipientIds,
       recipientGroups: incidentData.recipientGroups,
-      incidentType: incidentData.incidentType
+      incidentType: incidentData.incidentType,
+      policeInvolved: incidentData.policeInvolved,
+      policeReportFiled: incidentData.policeReportFiled
     })
     
     // Validate required fields
@@ -132,6 +134,14 @@ export async function POST(request) {
       location: incidentData.location,
       incidentOriginatedBy: incidentData.incidentOriginatedBy,
       description: incidentData.description,
+      
+      // FIXED: Include police fields in base incident data
+      policeInvolved: incidentData.policeInvolved || false,
+      policeReportFiled: incidentData.policeReportFiled || false,
+      policeReportNumber: incidentData.policeReportNumber || '',
+      officerName: incidentData.officerName || '',
+      officerBadge: incidentData.officerBadge || '',
+      
       messageType: incidentData.messageType || (isCommunication ? 'communication' : 'incident'),
       attachments: [], // Initialize empty - files will be uploaded separately
       recipientInfo: {
@@ -141,6 +151,14 @@ export async function POST(request) {
         individuals: incidentData.recipientIds || []
       }
     }
+    
+    console.log('Base incident data with police fields:', {
+      policeInvolved: baseIncidentData.policeInvolved,
+      policeReportFiled: baseIncidentData.policeReportFiled,
+      policeReportNumber: baseIncidentData.policeReportNumber,
+      officerName: baseIncidentData.officerName,
+      officerBadge: baseIncidentData.officerBadge
+    })
     
     // Create incidents for each recipient
     for (const recipient of allRecipients) {
