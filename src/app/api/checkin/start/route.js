@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { CheckIn } from '@/models/CheckIn'
+import { logActivity } from '@/models/ActivityLog'
 
 export async function POST(request) {
   try {
@@ -12,22 +13,30 @@ export async function POST(request) {
     
     const { location, notes } = await request.json()
     
-    console.log('=== CHECK-IN START DEBUG ===')
-    console.log('Session user ID:', session.user.id)
-    console.log('Session user name:', session.user.name)
-    console.log('Session user email:', session.user.email)
-    
-    // Pass email as the third parameter
     const shift = await CheckIn.startShift(
-      session.user.id,        // guardId
-      session.user.name,      // guardName  
-      session.user.email,     // guardEmail (NEW)
-      location,               // location
-      notes                   // notes
+      session.user.id,
+      session.user.name,
+      session.user.email,
+      location,
+      notes
     )
     
-    console.log('Created shift with guardId:', shift.guardId)
-    console.log('=== END CHECK-IN DEBUG ===')
+    // Log shift start activity
+    await logActivity({
+      userId: session.user.id,
+      userName: session.user.name,
+      userEmail: session.user.email,
+      userRole: session.user.role,
+      action: 'start_shift',
+      category: 'shift',
+      details: {
+        shiftId: shift._id.toString(),
+        location: location || 'Not specified',
+        notes: notes || 'No notes',
+        startTime: new Date().toISOString()
+      },
+      request
+    })
     
     return Response.json({
       message: 'Shift started successfully',
@@ -36,9 +45,29 @@ export async function POST(request) {
     
   } catch (error) {
     console.error('Start shift error:', error)
-    return Response.json(
-      { error: error.message },
-      { status: 400 }
-    )
+    
+    // Log failed shift start
+    try {
+      const session = await getServerSession(authOptions)
+      if (session) {
+        await logActivity({
+          userId: session.user.id,
+          userName: session.user.name,
+          userEmail: session.user.email,
+          userRole: session.user.role,
+          action: 'start_shift_failed',
+          category: 'shift',
+          details: {
+            error: error.message,
+            timestamp: new Date().toISOString()
+          },
+          request
+        })
+      }
+    } catch (logError) {
+      console.error('Failed to log error:', logError)
+    }
+    
+    return Response.json({ error: error.message }, { status: 400 })
   }
 }

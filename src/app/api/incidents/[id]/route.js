@@ -1,14 +1,15 @@
+// Update: src/app/api/incidents/[id]/route.js - Add activity logging for incident updates
+
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { Incident } from '@/models/Incident'
+import { logActivity } from '@/models/ActivityLog'
 import { ObjectId } from 'mongodb'
 
-// GET single incident
+// GET single incident (add view logging)
 export async function GET(request, { params }) {
   try {
-    // Await params in Next.js 15
     const resolvedParams = await params
-    
     const session = await getServerSession(authOptions)
     
     if (!session) {
@@ -17,12 +18,11 @@ export async function GET(request, { params }) {
     
     const incident = await Incident.findById(resolvedParams.id)
     
-    
     if (!incident) {
       return Response.json({ error: 'Incident not found' }, { status: 404 })
     }
 
-    // Check if this incident belongs to the current guard OR if they are the recipient OR if they are management
+    // Check permissions
     const isOwner = incident.guardId.toString() === session.user.id
     const isRecipient = incident.recipientId === session.user.id || incident.recipientId === session.user.role
     const isManagement = session.user.role === 'management'
@@ -30,6 +30,26 @@ export async function GET(request, { params }) {
     if (!isOwner && !isRecipient && !isManagement) {
       return Response.json({ error: 'Access denied' }, { status: 403 })
     }
+
+    // Log incident view activity (only for non-owners to avoid spam)
+    if (!isOwner) {
+      await logActivity({
+        userId: session.user.id,
+        userName: session.user.name,
+        userEmail: session.user.email,
+        userRole: session.user.role,
+        action: 'view_incident',
+        category: 'incident',
+        details: {
+          incidentId: incident.incidentId,
+          incidentType: incident.incidentType,
+          viewedBy: session.user.role,
+          timestamp: new Date().toISOString()
+        },
+        request
+      })
+    }
+
     return Response.json({ incident })
     
   } catch (error) {
@@ -41,12 +61,10 @@ export async function GET(request, { params }) {
   }
 }
 
-// PUT update incident
+// PUT update incident (add update logging)
 export async function PUT(request, { params }) {
   try {
-    // Await params in Next.js 15
     const resolvedParams = await params
-    
     const session = await getServerSession(authOptions)
     
     if (!session) {
@@ -54,15 +72,6 @@ export async function PUT(request, { params }) {
     }
     
     const incidentData = await request.json()
-    
-    console.log('Updating incident ID:', resolvedParams.id)
-    console.log('Update data with police fields:', {
-      policeInvolved: incidentData.policeInvolved,
-      policeReportFiled: incidentData.policeReportFiled,
-      policeReportNumber: incidentData.policeReportNumber,
-      officerName: incidentData.officerName,
-      officerBadge: incidentData.officerBadge
-    })
     
     // Get existing incident
     const existingIncident = await Incident.findById(resolvedParams.id)
@@ -94,20 +103,12 @@ export async function PUT(request, { params }) {
       }
     }
     
-    // FIXED: Properly handle police fields with explicit boolean conversion and validation
+    // Properly handle police fields with explicit boolean conversion and validation
     const policeInvolved = Boolean(incidentData.policeInvolved)
     const policeReportFiled = Boolean(incidentData.policeReportFiled)
     
-    console.log('Police fields processing in update:', {
-      originalPoliceInvolved: incidentData.policeInvolved,
-      convertedPoliceInvolved: policeInvolved,
-      originalPoliceReportFiled: incidentData.policeReportFiled,
-      convertedPoliceReportFiled: policeReportFiled
-    })
-    
     // Prepare update data with proper police field handling
     const updateData = {
-      // Only convert clientId if it's not already an ObjectId
       clientId: typeof incidentData.clientId === 'string' && incidentData.clientId.match(/^[0-9a-fA-F]{24}$/) 
         ? new ObjectId(incidentData.clientId) 
         : incidentData.clientId,
@@ -122,7 +123,7 @@ export async function PUT(request, { params }) {
       description: incidentData.description,
       messageType: incidentData.messageType,
       
-      // FIXED: Properly handle police fields with explicit boolean conversion and conditional logic
+      // Properly handle police fields with explicit boolean conversion and conditional logic
       policeInvolved: policeInvolved,
       policeReportFiled: policeInvolved ? policeReportFiled : false,
       policeReportNumber: (policeInvolved && policeReportFiled) ? (incidentData.policeReportNumber || '') : '',
@@ -132,31 +133,34 @@ export async function PUT(request, { params }) {
       updatedAt: new Date()
     }
     
-    console.log('Prepared update data with police fields:', {
-      policeInvolved: updateData.policeInvolved,
-      policeReportFiled: updateData.policeReportFiled,
-      policeReportNumber: updateData.policeReportNumber,
-      officerName: updateData.officerName,
-      officerBadge: updateData.officerBadge
-    })
-    
     const result = await Incident.updateIncident(resolvedParams.id, updateData)
-    
-    console.log('Update result:', result)
     
     if (result.matchedCount === 0) {
       return Response.json({ error: 'Incident not found' }, { status: 404 })
     }
     
-    // Get updated incident to verify police fields were saved
+    // Get updated incident
     const updatedIncident = await Incident.findById(resolvedParams.id)
     
-    console.log('Updated incident police data verification:', {
-      policeInvolved: updatedIncident.policeInvolved,
-      policeReportFiled: updatedIncident.policeReportFiled,
-      policeReportNumber: updatedIncident.policeReportNumber,
-      officerName: updatedIncident.officerName,
-      officerBadge: updatedIncident.officerBadge
+    // Log incident update activity
+    await logActivity({
+      userId: session.user.id,
+      userName: session.user.name,
+      userEmail: session.user.email,
+      userRole: session.user.role,
+      action: 'update_incident',
+      category: 'incident',
+      details: {
+        incidentId: existingIncident.incidentId,
+        incidentType: updateData.incidentType,
+        priority: updateData.priority,
+        policeInvolved: updateData.policeInvolved,
+        changes: Object.keys(updateData).filter(key => 
+          JSON.stringify(existingIncident[key]) !== JSON.stringify(updateData[key])
+        ),
+        timestamp: new Date().toISOString()
+      },
+      request
     })
     
     return Response.json({
@@ -166,6 +170,24 @@ export async function PUT(request, { params }) {
     
   } catch (error) {
     console.error('Update incident error:', error)
+    
+    // Log failed incident update
+    if (session) {
+      await logActivity({
+        userId: session.user.id,
+        userName: session.user.name,
+        userEmail: session.user.email,
+        userRole: session.user.role,
+        action: 'update_incident_failed',
+        category: 'incident',
+        details: {
+          error: error.message,
+          timestamp: new Date().toISOString()
+        },
+        request
+      })
+    }
+    
     return Response.json(
       { error: error.message },
       { status: 500 }

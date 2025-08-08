@@ -1,8 +1,9 @@
-// Fixed: src/app/api/incidents/create/route.js - Enhanced with police fields support
+// Update: src/app/api/incidents/create/route.js - Enhanced with activity logging
 
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { Incident } from '@/models/Incident'
+import { logActivity } from '@/models/ActivityLog'
 import { ObjectId } from 'mongodb'
 import clientPromise from '@/lib/mongodb'
 
@@ -22,7 +23,6 @@ export async function POST(request) {
       recipientIds: incidentData.recipientIds,
       recipientGroups: incidentData.recipientGroups,
       incidentType: incidentData.incidentType,
-      // FIXED: Log police fields to debug
       policeInvolved: incidentData.policeInvolved,
       policeReportFiled: incidentData.policeReportFiled,
       policeReportNumber: incidentData.policeReportNumber,
@@ -122,7 +122,7 @@ export async function POST(request) {
       )
     }
     
-    // FIXED: Properly handle police fields with explicit boolean conversion and validation
+    // Properly handle police fields with explicit boolean conversion and validation
     const policeInvolved = Boolean(incidentData.policeInvolved)
     const policeReportFiled = Boolean(incidentData.policeReportFiled)
     
@@ -153,7 +153,7 @@ export async function POST(request) {
       incidentOriginatedBy: incidentData.incidentOriginatedBy,
       description: incidentData.description,
       
-      // FIXED: Properly include police fields in base incident data with proper types
+      // Properly include police fields in base incident data with proper types
       policeInvolved: policeInvolved,
       policeReportFiled: policeReportFiled,
       policeReportNumber: (policeInvolved && policeReportFiled) ? (incidentData.policeReportNumber || '') : '',
@@ -219,6 +219,27 @@ export async function POST(request) {
     // Return the first incident as the primary one (for file uploads, etc.)
     const primaryIncident = createdIncidents[0]
     
+    // Log incident creation activity
+    await logActivity({
+      userId: session.user.id,
+      userName: session.user.name,
+      userEmail: session.user.email,
+      userRole: session.user.role,
+      action: isCommunication ? 'create_communication' : 'create_incident',
+      category: 'incident',
+      details: {
+        incidentId: primaryIncident.incidentId,
+        incidentType: incidentData.incidentType,
+        priority: incidentData.priority || 'normal',
+        recipientCount: allRecipients.length,
+        recipientType: incidentData.recipientType,
+        policeInvolved: policeInvolved,
+        location: incidentData.location,
+        timestamp: new Date().toISOString()
+      },
+      request
+    })
+    
     // Add summary information
     const summary = {
       totalRecipients: allRecipients.length,
@@ -249,6 +270,24 @@ export async function POST(request) {
     
   } catch (error) {
     console.error('Create incident/communication error:', error)
+    
+    // Log failed incident creation
+    if (session) {
+      await logActivity({
+        userId: session.user.id,
+        userName: session.user.name,
+        userEmail: session.user.email,
+        userRole: session.user.role,
+        action: 'create_incident_failed',
+        category: 'incident',
+        details: {
+          error: error.message,
+          timestamp: new Date().toISOString()
+        },
+        request
+      })
+    }
+    
     return Response.json(
       { 
         error: 'Failed to create incident/communication',

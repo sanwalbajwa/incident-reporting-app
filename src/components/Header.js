@@ -178,6 +178,12 @@ export default function Header() {
           href: '/management/reports',
           icon: BarChart3,
           active: pathname.startsWith('/management/reports')
+        },
+        {
+          name: 'Logs',
+          href: '/management/activity-logs',
+          icon: BarChart3,
+          active: pathname.startsWith('/management/activity-logs')
         }
       )
     }

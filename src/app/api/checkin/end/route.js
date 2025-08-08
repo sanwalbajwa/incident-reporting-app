@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { CheckIn } from '@/models/CheckIn'
+import { logActivity } from '@/models/ActivityLog'
 import clientPromise from '@/lib/mongodb'
 
 export async function POST(request) {
@@ -13,18 +14,13 @@ export async function POST(request) {
     
     const { notes } = await request.json()
     
-    console.log('=== END SHIFT API DEBUG ===')
-    console.log('User ID:', session.user.id)
-    console.log('User email:', session.user.email)
+    let shiftDuration = null
+    let shiftId = null
     
-    // Try to end shift by user ID first
     try {
       await CheckIn.endShift(session.user.id, notes || '')
-      console.log('Successfully ended shift by user ID')
     } catch (error) {
-      console.log('Failed to end by user ID, trying by email...')
-      
-      // Fallback: find and end by email
+      // Fallback logic
       const client = await clientPromise
       const db = client.db('incident-reporting-db')
       const checkins = db.collection('checkins')
@@ -36,7 +32,8 @@ export async function POST(request) {
       
       if (activeShift) {
         const checkOutTime = new Date()
-        const shiftDuration = Math.round((checkOutTime - activeShift.checkInTime) / (1000 * 60))
+        shiftDuration = Math.round((checkOutTime - activeShift.checkInTime) / (1000 * 60))
+        shiftId = activeShift._id.toString()
         
         await checkins.updateOne(
           { _id: activeShift._id },
@@ -50,11 +47,27 @@ export async function POST(request) {
             }
           }
         )
-        console.log('Successfully ended shift by email')
       } else {
         throw new Error('No active shift found')
       }
     }
+    
+    // Log shift end activity
+    await logActivity({
+      userId: session.user.id,
+      userName: session.user.name,
+      userEmail: session.user.email,
+      userRole: session.user.role,
+      action: 'end_shift',
+      category: 'shift',
+      details: {
+        shiftId: shiftId,
+        duration: shiftDuration ? `${Math.floor(shiftDuration / 60)}h ${shiftDuration % 60}m` : 'Unknown',
+        notes: notes || 'No notes',
+        endTime: new Date().toISOString()
+      },
+      request
+    })
     
     return Response.json({
       message: 'Shift ended successfully'
@@ -62,9 +75,29 @@ export async function POST(request) {
     
   } catch (error) {
     console.error('End shift error:', error)
-    return Response.json(
-      { error: error.message },
-      { status: 400 }
-    )
+    
+    // Log failed shift end
+    try {
+      const session = await getServerSession(authOptions)
+      if (session) {
+        await logActivity({
+          userId: session.user.id,
+          userName: session.user.name,
+          userEmail: session.user.email,
+          userRole: session.user.role,
+          action: 'end_shift_failed',
+          category: 'shift',
+          details: {
+            error: error.message,
+            timestamp: new Date().toISOString()
+          },
+          request
+        })
+      }
+    } catch (logError) {
+      console.error('Failed to log error:', logError)
+    }
+    
+    return Response.json({ error: error.message }, { status: 400 })
   }
 }

@@ -1,9 +1,10 @@
-// src/lib/auth.js - Enhanced with device detection
+// Step 1: Update your existing src/lib/auth.js to include activity logging
 
 import CredentialsProvider from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
 import { User } from '@/models/User'
 import { isAllowedDevice, getDeviceInfo } from '@/lib/deviceDetection'
+import { logActivity } from '@/models/ActivityLog'
 
 export const authOptions = {
   providers: [
@@ -15,54 +16,90 @@ export const authOptions = {
       },
       async authorize(credentials, req) {
         try {
-          console.log('=== AUTH WITH DEVICE DETECTION DEBUG START ===')
-          console.log('Login attempt for email:', credentials?.email)
-          
           if (!credentials?.email || !credentials?.password) {
-            console.log('Missing credentials')
             return null
           }
 
-          // Get user agent from request headers
           const userAgent = req.headers?.['user-agent'] || ''
-          console.log('User Agent:', userAgent)
-          
-          // Get device information
           const deviceInfo = getDeviceInfo(userAgent)
-          console.log('Device Info:', deviceInfo)
           
-          // Check if device is allowed (block mobile phones)
           if (!deviceInfo.isAllowed) {
-            console.log('Device blocked:', deviceInfo.deviceType)
-            // Return a special error object that can be handled by callbacks
+            // Log blocked device attempt
+            await logActivity({
+              userId: null,
+              userName: null,
+              userEmail: credentials.email,
+              userRole: null,
+              action: 'login_blocked',
+              category: 'authentication',
+              details: {
+                reason: 'device_blocked',
+                deviceType: deviceInfo.deviceType,
+                email: credentials.email
+              },
+              request: req
+            })
+            
             throw new Error(`DEVICE_BLOCKED:${deviceInfo.deviceType}`)
           }
 
-          // Continue with normal authentication
           const user = await User.findByEmail(credentials.email)
-          console.log('User found:', !!user)
           
           if (!user) {
-            console.log('No user found with email:', credentials.email)
+            // Log failed login - user not found
+            await logActivity({
+              userId: null,
+              userName: null,
+              userEmail: credentials.email,
+              userRole: null,
+              action: 'login_failed',
+              category: 'authentication',
+              details: {
+                reason: 'user_not_found',
+                email: credentials.email
+              },
+              request: req
+            })
+            
             return null
           }
 
-          const isPasswordValid = await bcrypt.compare(
-            credentials.password,
-            user.password
-          )
-          console.log('Password valid:', isPasswordValid)
+          const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
 
           if (!isPasswordValid) {
-            console.log('Invalid password')
+            // Log failed login - invalid password
+            await logActivity({
+              userId: user._id.toString(),
+              userName: user.fullName,
+              userEmail: user.email,
+              userRole: user.role,
+              action: 'login_failed',
+              category: 'authentication',
+              details: {
+                reason: 'invalid_password',
+                email: credentials.email
+              },
+              request: req
+            })
+            
             return null
           }
 
-          // Log successful login with device info
-          console.log('Authentication successful for:', user.email)
-          console.log('Device type allowed:', deviceInfo.deviceType)
+          // Log successful login
+          await logActivity({
+            userId: user._id.toString(),
+            userName: user.fullName,
+            userEmail: user.email,
+            userRole: user.role,
+            action: 'login',
+            category: 'authentication',
+            details: {
+              deviceType: deviceInfo.deviceType,
+              loginTime: new Date().toISOString()
+            },
+            request: req
+          })
           
-          // Update user's last login
           await User.updateLastLogin(user._id.toString())
           
           return {
@@ -70,19 +107,12 @@ export const authOptions = {
             email: user.email,
             name: user.fullName,
             role: user.role,
-            deviceType: deviceInfo.deviceType // Include device type in session
+            deviceType: deviceInfo.deviceType
           }
         } catch (error) {
-          console.error('Auth error:', error)
-          
-          // Handle device blocking errors specifically
           if (error.message.startsWith('DEVICE_BLOCKED:')) {
-            const deviceType = error.message.split(':')[1]
-            console.log('Blocking device type:', deviceType)
-            // This error will be caught by the error callback
             throw error
           }
-          
           return null
         }
       }
@@ -90,7 +120,7 @@ export const authOptions = {
   ],
   session: {
     strategy: 'jwt',
-    maxAge: 24 * 60 * 60, // 24 hours
+    maxAge: 24 * 60 * 60,
   },
   callbacks: {
     async jwt({ token, user }) {
@@ -107,7 +137,32 @@ export const authOptions = {
         session.user.deviceType = token.deviceType
       }
       return session
-    },
+    }
+  },
+  events: {
+    async signOut({ token }) {
+      // Log logout activity
+      if (token?.sub) {
+        try {
+          const user = await User.findById(token.sub)
+          if (user) {
+            await logActivity({
+              userId: user._id.toString(),
+              userName: user.fullName,
+              userEmail: user.email,
+              userRole: user.role,
+              action: 'logout',
+              category: 'authentication',
+              details: {
+                logoutTime: new Date().toISOString()
+              }
+            })
+          }
+        } catch (error) {
+          console.error('Error logging logout activity:', error)
+        }
+      }
+    }
   },
   pages: {
     signIn: '/login',
