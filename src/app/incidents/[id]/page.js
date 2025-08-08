@@ -466,7 +466,7 @@ const getBackLabel = () => {
           incident.policeInvolved === false || 
           incident.policeReportFiled || 
           incident.policeReportNumber || 
-          incident.officerName || 
+          incident.officerName ||
           incident.officerBadge) && (
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
