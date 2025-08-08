@@ -141,7 +141,7 @@ static async getActiveShift(guardId) {
     .toArray()
 }
   
-  // New method: Update shift with photo
+  // Method: Update shift with photo
   static async updateShiftPhoto(shiftId, photoField, photoData) {
     console.log('=== CHECKIN MODEL DEBUG ===')
     console.log('Updating shift photo:')
@@ -197,6 +197,98 @@ static async getActiveShift(guardId) {
     } catch (error) {
       console.error('Error updating shift photo:', error)
       throw error
+    }
+  }
+  // Add new break management methods
+  static async startBreak(guardId, breakType = 'break') {
+    const client = await clientPromise
+    const db = client.db('incident-reporting-db')
+    const checkins = db.collection('checkins')
+    
+    // Find active shift
+    const activeShift = await checkins.findOne({
+      guardId: new ObjectId(guardId),
+      checkOutTime: null
+    })
+    
+    if (!activeShift) {
+      throw new Error('No active shift found')
+    }
+    
+    // Check if already on break
+    if (activeShift.currentBreak) {
+      throw new Error('Already on break')
+    }
+    
+    const breakStart = new Date()
+    
+    await checkins.updateOne(
+      { _id: activeShift._id },
+      {
+        $set: {
+          currentBreak: {
+            type: breakType, // 'break' or 'lunch'
+            startTime: breakStart,
+            endTime: null
+          },
+          updatedAt: new Date()
+        }
+      }
+    )
+    
+    return { message: `${breakType} started`, startTime: breakStart }
+  }
+  
+  static async endBreak(guardId) {
+    const client = await clientPromise
+    const db = client.db('incident-reporting-db')
+    const checkins = db.collection('checkins')
+    
+    const activeShift = await checkins.findOne({
+      guardId: new ObjectId(guardId),
+      checkOutTime: null
+    })
+    
+    if (!activeShift || !activeShift.currentBreak) {
+      throw new Error('No active break found')
+    }
+    
+    const breakEnd = new Date()
+    const breakDuration = Math.round((breakEnd - activeShift.currentBreak.startTime) / (1000 * 60))
+    
+    const completedBreak = {
+      ...activeShift.currentBreak,
+      endTime: breakEnd,
+      duration: breakDuration
+    }
+    
+    // Move to breaks history and clear current break
+    await checkins.updateOne(
+      { _id: activeShift._id },
+      {
+        $push: { breaks: completedBreak },
+        $unset: { currentBreak: "" },
+        $set: { updatedAt: new Date() }
+      }
+    )
+    
+    return { message: 'Break ended', duration: breakDuration }
+  }
+  
+  static async getBreakStatus(guardId) {
+    const client = await clientPromise
+    const db = client.db('incident-reporting-db')
+    const checkins = db.collection('checkins')
+    
+    const activeShift = await checkins.findOne({
+      guardId: new ObjectId(guardId),
+      checkOutTime: null
+    })
+    
+    return {
+      onBreak: !!activeShift?.currentBreak,
+      currentBreak: activeShift?.currentBreak || null,
+      todayBreaks: activeShift?.breaks || []
     }
   }
 }
