@@ -42,7 +42,6 @@ export async function GET(request, { params }) {
 }
 
 // PUT update incident
-// PUT update incident
 export async function PUT(request, { params }) {
   try {
     // Await params in Next.js 15
@@ -95,20 +94,40 @@ export async function PUT(request, { params }) {
       }
     }
     
-    // Prepare update data (don't change clientId to ObjectId if it's already a string)
+    // FIXED: Properly handle police fields with explicit boolean conversion and validation
+    const policeInvolved = Boolean(incidentData.policeInvolved)
+    const policeReportFiled = Boolean(incidentData.policeReportFiled)
+    
+    console.log('Police fields processing in update:', {
+      originalPoliceInvolved: incidentData.policeInvolved,
+      convertedPoliceInvolved: policeInvolved,
+      originalPoliceReportFiled: incidentData.policeReportFiled,
+      convertedPoliceReportFiled: policeReportFiled
+    })
+    
+    // Prepare update data with proper police field handling
     const updateData = {
-      ...incidentData,
       // Only convert clientId if it's not already an ObjectId
       clientId: typeof incidentData.clientId === 'string' && incidentData.clientId.match(/^[0-9a-fA-F]{24}$/) 
         ? new ObjectId(incidentData.clientId) 
         : incidentData.clientId,
-        
-      // FIXED: Properly handle police fields with explicit boolean conversion
-      policeInvolved: Boolean(incidentData.policeInvolved),
-      policeReportFiled: Boolean(incidentData.policeReportFiled),
-      policeReportNumber: incidentData.policeReportNumber || '',
-      officerName: incidentData.officerName || '',
-      officerBadge: incidentData.officerBadge || '',
+      incidentType: incidentData.incidentType,
+      priority: incidentData.priority,
+      incidentDate: incidentData.incidentDate,
+      incidentTime: incidentData.incidentTime,
+      incidentDateTime: incidentData.incidentDateTime,
+      withinProperty: incidentData.withinProperty,
+      location: incidentData.location,
+      incidentOriginatedBy: incidentData.incidentOriginatedBy,
+      description: incidentData.description,
+      messageType: incidentData.messageType,
+      
+      // FIXED: Properly handle police fields with explicit boolean conversion and conditional logic
+      policeInvolved: policeInvolved,
+      policeReportFiled: policeInvolved ? policeReportFiled : false,
+      policeReportNumber: (policeInvolved && policeReportFiled) ? (incidentData.policeReportNumber || '') : '',
+      officerName: policeInvolved ? (incidentData.officerName || '') : '',
+      officerBadge: policeInvolved ? (incidentData.officerBadge || '') : '',
       
       updatedAt: new Date()
     }
@@ -129,10 +148,10 @@ export async function PUT(request, { params }) {
       return Response.json({ error: 'Incident not found' }, { status: 404 })
     }
     
-    // Get updated incident
+    // Get updated incident to verify police fields were saved
     const updatedIncident = await Incident.findById(resolvedParams.id)
     
-    console.log('Updated incident police data:', {
+    console.log('Updated incident police data verification:', {
       policeInvolved: updatedIncident.policeInvolved,
       policeReportFiled: updatedIncident.policeReportFiled,
       policeReportNumber: updatedIncident.policeReportNumber,

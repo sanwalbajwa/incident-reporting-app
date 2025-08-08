@@ -135,176 +135,193 @@ export default function EditIncidentPage({ params }) {
   }
 
   const loadIncident = async () => {
-    try {
-      // Await params for Next.js 15
-      const resolvedParams = await params
-      const response = await fetch(`/api/incidents/${resolvedParams.id}`)
-      const data = await response.json()
+  try {
+    // Await params for Next.js 15
+    const resolvedParams = await params
+    const response = await fetch(`/api/incidents/${resolvedParams.id}`)
+    const data = await response.json()
+    
+    if (response.ok) {
+      const incident = data.incident
+      setOriginalIncident(incident)
       
-      if (response.ok) {
-        const incident = data.incident
-        setOriginalIncident(incident)
-        
-        // Check if incident can be edited
-        if (incident.status !== 'submitted') {
-          alert('This incident cannot be edited because it has already been reviewed.')
-          router.push(`/incidents/${resolvedParams.id}`)
-          return
-        }
-        
-        // Check if user owns this incident
-        if (incident.guardId !== session.user.id) {
-          alert('You can only edit your own incidents.')
-          router.push('/incidents')
-          return
-        }
-        
-        // Determine recipient selection mode based on incident data
-        const hasRecipientInfo = incident.recipientInfo && incident.recipientInfo.type
-        const useGroupSelection = hasRecipientInfo && incident.recipientInfo.type === 'group'
-        
-        console.log('Loading incident with police data:', {
-          policeInvolved: incident.policeInvolved,
-          policeReportFiled: incident.policeReportFiled,
-          policeReportNumber: incident.policeReportNumber,
-          officerName: incident.officerName,
-          officerBadge: incident.officerBadge
-        })
-        
-        // Populate form with incident data - FIXED: Properly load police fields
-        setFormData({
-          recipientIds: useGroupSelection ? [] : (incident.recipientId ? [incident.recipientId] : []),
-          recipientGroups: hasRecipientInfo ? (incident.recipientInfo.groups || []) : [],
-          useGroupSelection: useGroupSelection,
-          clientId: incident.clientId || '',
-          incidentType: incident.incidentType || '',
-          customIncidentType: incident.incidentType === 'Other' ? incident.incidentType : '',
-          priority: incident.priority || '',
-          incidentDate: incident.incidentDate || incident.incidentDateTime?.split('T')[0] || '',
-          incidentTime: incident.incidentTime || incident.incidentDateTime?.split('T')[1]?.slice(0, 5) || '',
-          locationWithinProperty: incident.withinProperty ?? true,
-          locationDescription: incident.location || '',
-          description: incident.description || '',
-          incidentOriginatedBy: incident.incidentOriginatedBy || 'Property',
-          
-          // FIXED: Properly load police fields with correct boolean handling
-          policeInvolved: Boolean(incident.policeInvolved), // Ensure boolean
-          policeReportFiled: Boolean(incident.policeReportFiled), // Ensure boolean
-          policeReportNumber: incident.policeReportNumber || '',
-          officerName: incident.officerName || '',
-          officerBadge: incident.officerBadge || '',
-          
-          attachments: incident.attachments || []
-        })
-        
-        console.log('Form data set with police fields:', {
-          policeInvolved: Boolean(incident.policeInvolved),
-          policeReportFiled: Boolean(incident.policeReportFiled),
-          policeReportNumber: incident.policeReportNumber || '',
-          officerName: incident.officerName || '',
-          officerBadge: incident.officerBadge || ''
-        })
-      } else {
-        alert('Incident not found')
-        router.push('/incidents')
+      // Check if incident can be edited
+      if (incident.status !== 'submitted') {
+        alert('This incident cannot be edited because it has already been reviewed.')
+        router.push(`/incidents/${resolvedParams.id}`)
+        return
       }
-    } catch (error) {
-      console.error('Error loading incident:', error)
-      alert('Error loading incident')
+      
+      // Check if user owns this incident
+      if (incident.guardId !== session.user.id) {
+        alert('You can only edit your own incidents.')
+        router.push('/incidents')
+        return
+      }
+      
+      // Determine recipient selection mode based on incident data
+      const hasRecipientInfo = incident.recipientInfo && incident.recipientInfo.type
+      const useGroupSelection = hasRecipientInfo && incident.recipientInfo.type === 'group'
+      
+      console.log('Loading incident with police data:', {
+        policeInvolved: incident.policeInvolved,
+        policeReportFiled: incident.policeReportFiled,
+        policeReportNumber: incident.policeReportNumber,
+        officerName: incident.officerName,
+        officerBadge: incident.officerBadge
+      })
+      
+      // FIXED: Properly load police fields with explicit boolean conversion
+      setFormData({
+        recipientIds: useGroupSelection ? [] : (incident.recipientId ? [incident.recipientId] : []),
+        recipientGroups: hasRecipientInfo ? (incident.recipientInfo.groups || []) : [],
+        useGroupSelection: useGroupSelection,
+        clientId: incident.clientId || '',
+        incidentType: incident.incidentType || '',
+        customIncidentType: incident.incidentType === 'Other' ? incident.incidentType : '',
+        priority: incident.priority || '',
+        incidentDate: incident.incidentDate || incident.incidentDateTime?.split('T')[0] || '',
+        incidentTime: incident.incidentTime || incident.incidentDateTime?.split('T')[1]?.slice(0, 5) || '',
+        locationWithinProperty: incident.withinProperty ?? true,
+        locationDescription: incident.location || '',
+        description: incident.description || '',
+        incidentOriginatedBy: incident.incidentOriginatedBy || 'Property',
+        
+        // FIXED: Properly load police fields with correct boolean handling and null safety
+        policeInvolved: incident.policeInvolved === true || incident.policeInvolved === 'true',
+        policeReportFiled: incident.policeReportFiled === true || incident.policeReportFiled === 'true',
+        policeReportNumber: incident.policeReportNumber || '',
+        officerName: incident.officerName || '',
+        officerBadge: incident.officerBadge || '',
+        
+        attachments: incident.attachments || []
+      })
+      
+      console.log('Form data set with police fields:', {
+        policeInvolved: incident.policeInvolved === true || incident.policeInvolved === 'true',
+        policeReportFiled: incident.policeReportFiled === true || incident.policeReportFiled === 'true',
+        policeReportNumber: incident.policeReportNumber || '',
+        officerName: incident.officerName || '',
+        officerBadge: incident.officerBadge || ''
+      })
+    } else {
+      alert('Incident not found')
       router.push('/incidents')
     }
-    setPageLoading(false)
+  } catch (error) {
+    console.error('Error loading incident:', error)
+    alert('Error loading incident')
+    router.push('/incidents')
   }
+  setPageLoading(false)
+}
   
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setLoading(true)
+  e.preventDefault()
+  setLoading(true)
 
-    try {
-      // Await params for Next.js 15
-      const resolvedParams = await params
-      const isCommunication = formData.incidentType === 'Communication/Message'
-      
-      // Prepare recipient data based on selection type
-      let recipientData = {}
-      
-      if (formData.useGroupSelection) {
-        // Group-based selection
-        recipientData = {
-          recipientType: 'group',
-          recipientGroups: formData.recipientGroups,
-          recipientIds: [] // Empty for group selection
-        }
-      } else {
-        // Individual selection
-        recipientData = {
-          recipientType: 'individual',
-          recipientIds: formData.recipientIds,
-          recipientGroups: [] // Empty for individual selection
-        }
+  try {
+    // Await params for Next.js 15
+    const resolvedParams = await params
+    const isCommunication = formData.incidentType === 'Communication/Message'
+    
+    // Prepare recipient data based on selection type
+    let recipientData = {}
+    
+    if (formData.useGroupSelection) {
+      // Group-based selection
+      recipientData = {
+        recipientType: 'group',
+        recipientGroups: formData.recipientGroups,
+        recipientIds: [] // Empty for group selection
       }
-      
-      const incidentData = {
-        ...recipientData,
-        clientId: formData.clientId,
-        incidentType: formData.incidentType === 'Other' ? formData.customIncidentType : formData.incidentType,
-        priority: formData.priority,
-        incidentDate: formData.incidentDate,
-        incidentTime: formData.incidentTime,
-        incidentDateTime: new Date(`${formData.incidentDate}T${formData.incidentTime}`),
-        withinProperty: formData.locationWithinProperty,
-        location: formData.locationDescription,
-        description: formData.description,
-        incidentOriginatedBy: formData.incidentOriginatedBy,
-        messageType: isCommunication ? 'communication' : 'incident'
+    } else {
+      // Individual selection
+      recipientData = {
+        recipientType: 'individual',
+        recipientIds: formData.recipientIds,
+        recipientGroups: [] // Empty for individual selection
       }
-
-      console.log('Updating incident data:', incidentData)
-
-      const response = await fetch(`/api/incidents/${resolvedParams.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(incidentData)
-      })
-
-      const data = await response.json()
-      console.log('Update response:', data)
-
-      if (response.ok) {
-        // Handle new file uploads if any
-        if (formData.newAttachments && formData.newAttachments.length > 0) {
-          await uploadNewFiles(resolvedParams.id)
-        }
-        
-        const isMessage = formData.incidentType === 'Communication/Message'
-        let successMessage = ''
-        
-        if (formData.useGroupSelection && formData.recipientGroups.length > 0) {
-          const groupNames = formData.recipientGroups.map(groupId => 
-            RECIPIENT_GROUPS.find(g => g.id === groupId)?.name || groupId
-          ).join(', ')
-          
-          successMessage = `${isMessage ? 'Message' : 'Incident'} updated successfully and will be sent to ${groupNames}!\n${isMessage ? 'Message' : 'Incident'} ID: ${originalIncident.incidentId}`
-        } else if (formData.recipientIds.length > 1) {
-          successMessage = `${isMessage ? 'Message' : 'Incident'} updated successfully and will be sent to ${formData.recipientIds.length} recipients!\n${isMessage ? 'Message' : 'Incident'} ID: ${originalIncident.incidentId}`
-        } else {
-          successMessage = `${isMessage ? 'Message' : 'Incident'} updated successfully!\n${isMessage ? 'Message' : 'Incident'} ID: ${originalIncident.incidentId}`
-        }
-        
-        alert(successMessage)
-        router.push(`/incidents/${resolvedParams.id}`)
-      } else {
-        alert(`Error: ${data.error || 'Failed to update'}`)
-        console.error('Server error:', data)
-      }
-    } catch (error) {
-      alert(`Network error: ${error.message}`)
-      console.error('Network error:', error)
     }
-    setLoading(false)
+    
+    // FIXED: Properly include police fields in the update data
+    const incidentData = {
+      ...recipientData,
+      clientId: formData.clientId,
+      incidentType: formData.incidentType === 'Other' ? formData.customIncidentType : formData.incidentType,
+      priority: formData.priority,
+      incidentDate: formData.incidentDate,
+      incidentTime: formData.incidentTime,
+      incidentDateTime: new Date(`${formData.incidentDate}T${formData.incidentTime}`),
+      withinProperty: formData.locationWithinProperty,
+      location: formData.locationDescription,
+      description: formData.description,
+      incidentOriginatedBy: formData.incidentOriginatedBy,
+      messageType: isCommunication ? 'communication' : 'incident',
+      
+      // FIXED: Properly include police fields with explicit boolean conversion
+      policeInvolved: Boolean(formData.policeInvolved),
+      policeReportFiled: Boolean(formData.policeReportFiled),
+      policeReportNumber: formData.policeReportNumber || '',
+      officerName: formData.officerName || '',
+      officerBadge: formData.officerBadge || ''
+    }
+
+    console.log('Updating incident data with police fields:', {
+      ...incidentData,
+      policeFields: {
+        policeInvolved: incidentData.policeInvolved,
+        policeReportFiled: incidentData.policeReportFiled,
+        policeReportNumber: incidentData.policeReportNumber,
+        officerName: incidentData.officerName,
+        officerBadge: incidentData.officerBadge
+      }
+    })
+
+    const response = await fetch(`/api/incidents/${resolvedParams.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(incidentData)
+    })
+
+    const data = await response.json()
+    console.log('Update response:', data)
+
+    if (response.ok) {
+      // Handle new file uploads if any
+      if (formData.newAttachments && formData.newAttachments.length > 0) {
+        await uploadNewFiles(resolvedParams.id)
+      }
+      
+      const isMessage = formData.incidentType === 'Communication/Message'
+      let successMessage = ''
+      
+      if (formData.useGroupSelection && formData.recipientGroups.length > 0) {
+        const groupNames = formData.recipientGroups.map(groupId => 
+          RECIPIENT_GROUPS.find(g => g.id === groupId)?.name || groupId
+        ).join(', ')
+        
+        successMessage = `${isMessage ? 'Message' : 'Incident'} updated successfully and will be sent to ${groupNames}!\n${isMessage ? 'Message' : 'Incident'} ID: ${originalIncident.incidentId}`
+      } else if (formData.recipientIds.length > 1) {
+        successMessage = `${isMessage ? 'Message' : 'Incident'} updated successfully and will be sent to ${formData.recipientIds.length} recipients!\n${isMessage ? 'Message' : 'Incident'} ID: ${originalIncident.incidentId}`
+      } else {
+        successMessage = `${isMessage ? 'Message' : 'Incident'} updated successfully!\n${isMessage ? 'Message' : 'Incident'} ID: ${originalIncident.incidentId}`
+      }
+      
+      alert(successMessage)
+      router.push(`/incidents/${resolvedParams.id}`)
+    } else {
+      alert(`Error: ${data.error || 'Failed to update'}`)
+      console.error('Server error:', data)
+    }
+  } catch (error) {
+    alert(`Network error: ${error.message}`)
+    console.error('Network error:', error)
   }
+  setLoading(false)
+}
 
   const uploadNewFiles = async (incidentId) => {
     try {

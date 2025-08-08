@@ -1,3 +1,5 @@
+// Fixed: src/models/Incident.js - Enhanced with proper police fields handling
+
 import clientPromise from '@/lib/mongodb'
 import { ObjectId } from 'mongodb'
 
@@ -11,8 +13,21 @@ export class Incident {
     const incidentCount = await incidents.countDocuments()
     const incidentId = `INC-${Date.now()}-${(incidentCount + 1).toString().padStart(4, '0')}`
     
+    // FIXED: Properly handle police fields with explicit type checking and defaults
+    const policeInvolved = Boolean(incidentData.policeInvolved)
+    const policeReportFiled = Boolean(incidentData.policeReportFiled)
+    
+    console.log('Incident.create - Police fields processing:', {
+      inputPoliceInvolved: incidentData.policeInvolved,
+      inputPoliceReportFiled: incidentData.policeReportFiled,
+      inputPoliceReportNumber: incidentData.policeReportNumber,
+      inputOfficerName: incidentData.officerName,
+      inputOfficerBadge: incidentData.officerBadge,
+      processedPoliceInvolved: policeInvolved,
+      processedPoliceReportFiled: policeReportFiled
+    })
+    
     const newIncident = {
-      ...incidentData,
       incidentId,
       guardId: incidentData.guardId,
       guardName: incidentData.guardName,
@@ -28,12 +43,13 @@ export class Incident {
       incidentOriginatedBy: incidentData.incidentOriginatedBy,
       description: incidentData.description,
     
-      // FIXED: Properly include police fields with defaults
-      policeInvolved: incidentData.policeInvolved || false,
-      policeReportFiled: incidentData.policeReportFiled || false,
-      policeReportNumber: incidentData.policeReportNumber || '',
-      officerName: incidentData.officerName || '',
-      officerBadge: incidentData.officerBadge || '',
+      // FIXED: Properly handle police fields with validation and proper types
+      policeInvolved: policeInvolved,
+      policeReportFiled: policeReportFiled,
+      // Only save police details if police were actually involved
+      policeReportNumber: (policeInvolved && policeReportFiled) ? (incidentData.policeReportNumber || '') : '',
+      officerName: policeInvolved ? (incidentData.officerName || '') : '',
+      officerBadge: policeInvolved ? (incidentData.officerBadge || '') : '',
       
       attachments: incidentData.attachments || [],
       recipientId: incidentData.recipientId,
@@ -47,7 +63,26 @@ export class Incident {
       updatedAt: new Date()
     }
     
+    console.log('Final incident object police fields before DB insert:', {
+      policeInvolved: newIncident.policeInvolved,
+      policeReportFiled: newIncident.policeReportFiled,
+      policeReportNumber: newIncident.policeReportNumber,
+      officerName: newIncident.officerName,
+      officerBadge: newIncident.officerBadge
+    })
+    
     const result = await incidents.insertOne(newIncident)
+    
+    // VERIFICATION: Read back the inserted document to verify police fields were saved
+    const insertedIncident = await incidents.findOne({ _id: result.insertedId })
+    console.log('Verification - Police fields after DB insert:', {
+      policeInvolved: insertedIncident.policeInvolved,
+      policeReportFiled: insertedIncident.policeReportFiled,
+      policeReportNumber: insertedIncident.policeReportNumber,
+      officerName: insertedIncident.officerName,
+      officerBadge: insertedIncident.officerBadge
+    })
+    
     return { _id: result.insertedId, ...newIncident }
   }
   
@@ -56,7 +91,20 @@ export class Incident {
     const db = client.db('incident-reporting-db')
     const incidents = db.collection('incidents')
     
-    return await incidents.findOne({ _id: new ObjectId(id) })
+    const incident = await incidents.findOne({ _id: new ObjectId(id) })
+    
+    // DEBUG: Log police fields when retrieving incident
+    if (incident) {
+      console.log('Retrieved incident police fields:', {
+        policeInvolved: incident.policeInvolved,
+        policeReportFiled: incident.policeReportFiled,
+        policeReportNumber: incident.policeReportNumber,
+        officerName: incident.officerName,
+        officerBadge: incident.officerBadge
+      })
+    }
+    
+    return incident
   }
   
   static async findByGuard(guardId, limit = 10) {
@@ -115,7 +163,37 @@ export class Incident {
     const db = client.db('incident-reporting-db')
     const incidents = db.collection('incidents')
     
-    return await incidents.updateOne(
+    // FIXED: Properly handle police fields in updates too
+    if (updateData.policeInvolved !== undefined) {
+      updateData.policeInvolved = Boolean(updateData.policeInvolved)
+    }
+    
+    if (updateData.policeReportFiled !== undefined) {
+      updateData.policeReportFiled = Boolean(updateData.policeReportFiled)
+    }
+    
+    // If police not involved, clear all police-related fields
+    if (updateData.policeInvolved === false) {
+      updateData.policeReportFiled = false
+      updateData.policeReportNumber = ''
+      updateData.officerName = ''
+      updateData.officerBadge = ''
+    }
+    
+    // If police report not filed, clear report number
+    if (updateData.policeReportFiled === false) {
+      updateData.policeReportNumber = ''
+    }
+    
+    console.log('Incident.updateIncident - Police fields in update:', {
+      policeInvolved: updateData.policeInvolved,
+      policeReportFiled: updateData.policeReportFiled,
+      policeReportNumber: updateData.policeReportNumber,
+      officerName: updateData.officerName,
+      officerBadge: updateData.officerBadge
+    })
+    
+    const result = await incidents.updateOne(
       { _id: new ObjectId(id) },
       { 
         $set: { 
@@ -124,6 +202,20 @@ export class Incident {
         } 
       }
     )
+    
+    // VERIFICATION: Read back the updated document
+    if (result.modifiedCount > 0) {
+      const updatedIncident = await incidents.findOne({ _id: new ObjectId(id) })
+      console.log('Verification - Police fields after update:', {
+        policeInvolved: updatedIncident.policeInvolved,
+        policeReportFiled: updatedIncident.policeReportFiled,
+        policeReportNumber: updatedIncident.policeReportNumber,
+        officerName: updatedIncident.officerName,
+        officerBadge: updatedIncident.officerBadge
+      })
+    }
+    
+    return result
   }
   
   static async getAllIncidents(page = 1, limit = 20) {

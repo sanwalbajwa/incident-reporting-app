@@ -1,4 +1,4 @@
-// Update: src/app/api/incidents/create/route.js - Enhanced with police fields support
+// Fixed: src/app/api/incidents/create/route.js - Enhanced with police fields support
 
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -16,14 +16,18 @@ export async function POST(request) {
     
     const incidentData = await request.json()
     
-    console.log('=== MULTI-RECIPIENT INCIDENT CREATION ===')
+    console.log('=== MULTI-RECIPIENT INCIDENT CREATION WITH POLICE FIELDS ===')
     console.log('Received data:', {
       recipientType: incidentData.recipientType,
       recipientIds: incidentData.recipientIds,
       recipientGroups: incidentData.recipientGroups,
       incidentType: incidentData.incidentType,
+      // FIXED: Log police fields to debug
       policeInvolved: incidentData.policeInvolved,
-      policeReportFiled: incidentData.policeReportFiled
+      policeReportFiled: incidentData.policeReportFiled,
+      policeReportNumber: incidentData.policeReportNumber,
+      officerName: incidentData.officerName,
+      officerBadge: incidentData.officerBadge
     })
     
     // Validate required fields
@@ -118,6 +122,20 @@ export async function POST(request) {
       )
     }
     
+    // FIXED: Properly handle police fields with explicit boolean conversion and validation
+    const policeInvolved = Boolean(incidentData.policeInvolved)
+    const policeReportFiled = Boolean(incidentData.policeReportFiled)
+    
+    console.log('Police fields processing:', {
+      originalPoliceInvolved: incidentData.policeInvolved,
+      convertedPoliceInvolved: policeInvolved,
+      originalPoliceReportFiled: incidentData.policeReportFiled,
+      convertedPoliceReportFiled: policeReportFiled,
+      policeReportNumber: incidentData.policeReportNumber,
+      officerName: incidentData.officerName,
+      officerBadge: incidentData.officerBadge
+    })
+    
     // Create individual incident records for each recipient
     const createdIncidents = []
     const baseIncidentData = {
@@ -135,12 +153,12 @@ export async function POST(request) {
       incidentOriginatedBy: incidentData.incidentOriginatedBy,
       description: incidentData.description,
       
-      // FIXED: Include police fields in base incident data
-      policeInvolved: incidentData.policeInvolved || false,
-      policeReportFiled: incidentData.policeReportFiled || false,
-      policeReportNumber: incidentData.policeReportNumber || '',
-      officerName: incidentData.officerName || '',
-      officerBadge: incidentData.officerBadge || '',
+      // FIXED: Properly include police fields in base incident data with proper types
+      policeInvolved: policeInvolved,
+      policeReportFiled: policeReportFiled,
+      policeReportNumber: (policeInvolved && policeReportFiled) ? (incidentData.policeReportNumber || '') : '',
+      officerName: policeInvolved ? (incidentData.officerName || '') : '',
+      officerBadge: policeInvolved ? (incidentData.officerBadge || '') : '',
       
       messageType: incidentData.messageType || (isCommunication ? 'communication' : 'incident'),
       attachments: [], // Initialize empty - files will be uploaded separately
@@ -170,10 +188,18 @@ export async function POST(request) {
         recipientRole: recipient.role
       }
       
-      console.log('Creating incident for recipient:', recipient.fullName)
+      console.log('Creating incident for recipient with police data:', {
+        recipient: recipient.fullName,
+        policeInvolved: completeIncidentData.policeInvolved,
+        policeReportFiled: completeIncidentData.policeReportFiled,
+        policeReportNumber: completeIncidentData.policeReportNumber,
+        officerName: completeIncidentData.officerName,
+        officerBadge: completeIncidentData.officerBadge
+      })
       
       try {
         const incident = await Incident.create(completeIncidentData)
+        console.log('Incident created successfully with ID:', incident._id)
         createdIncidents.push(incident)
       } catch (error) {
         console.error(`Failed to create incident for ${recipient.fullName}:`, error)
