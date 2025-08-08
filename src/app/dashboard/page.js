@@ -1,3 +1,4 @@
+// Update: src/app/dashboard/page.js - Add Break Management
 'use client'
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
@@ -16,8 +17,11 @@ import {
   Calendar,
   Timer,
   Shield,
-  Building2
+  Building2,
+  Coffee,
+  UtensilsCrossed
 } from 'lucide-react'
+import BreakManager from '@/components/BreakManager'
 
 export default function Dashboard() {
   const { data: session, status } = useSession()
@@ -204,7 +208,6 @@ export default function Dashboard() {
                   onClick={() => router.push('/checkin')}
                   className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-10 py-4 rounded-2xl text-xl font-bold transition-all duration-200 transform hover:scale-105 hover:shadow-lg inline-flex items-center gap-3"
                 >
-                  {/* <Play className="w-6 h-6" /> */}
                   <Camera className="w-6 h-6" />
                   START SHIFT
                 </button>
@@ -212,6 +215,11 @@ export default function Dashboard() {
             </div>
           )}
         </div>
+
+        {/* Break Management - Only show if on duty */}
+        {activeShift && (
+          <BreakManager />
+        )}
 
         {/* Quick Actions - Only show if on duty */}
         {activeShift && (
