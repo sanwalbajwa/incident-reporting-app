@@ -19,7 +19,8 @@ import {
   Settings,
   Shield,
   Crown,
-  UserCheck
+  UserCheck,
+  History
 } from 'lucide-react'
 
 export default function Header() {
@@ -182,7 +183,7 @@ export default function Header() {
         {
           name: 'Logs',
           href: '/management/activity-logs',
-          icon: BarChart3,
+          icon: History,
           active: pathname.startsWith('/management/activity-logs')
         }
       )
