@@ -1,4 +1,4 @@
-// src/app/management/activity-logs/page.js
+// Enhanced: src/app/management/activity-logs/page.js
 
 'use client'
 import { useSession } from 'next-auth/react'
@@ -33,7 +33,9 @@ import {
   Settings,
   Smartphone,
   Tablet,
-  Monitor
+  Monitor,
+  X,
+  ExternalLink
 } from 'lucide-react'
 
 export default function ManagementActivityLogsPage() {
@@ -44,6 +46,12 @@ export default function ManagementActivityLogsPage() {
   const [activities, setActivities] = useState([])
   const [stats, setStats] = useState({})
   const [topUsers, setTopUsers] = useState([])
+  const [allUsers, setAllUsers] = useState([]) // New: All users for search
+  const [selectedUser, setSelectedUser] = useState(null) // New: Selected user
+  const [userActivities, setUserActivities] = useState([]) // New: User-specific activities
+  const [userSearchTerm, setUserSearchTerm] = useState('') // New: User search term
+  const [showUserModal, setShowUserModal] = useState(false) // New: User modal visibility
+  const [exportingCsv, setExportingCsv] = useState(false) // New: CSV export loading
   const [filters, setFilters] = useState({
     limit: 50,
     category: '',
@@ -68,6 +76,7 @@ export default function ManagementActivityLogsPage() {
     }
     
     loadActivityLogs()
+    loadAllUsers() // New: Load all users for search
   }, [session, status, router])
 
   const loadActivityLogs = async () => {
@@ -92,6 +101,79 @@ export default function ManagementActivityLogsPage() {
       console.error('Error loading activity logs:', error)
     }
     setLoading(false)
+  }
+
+  // New: Load all users for search functionality
+  const loadAllUsers = async () => {
+    try {
+      const response = await fetch('/api/management/users')
+      const data = await response.json()
+      
+      if (data.success) {
+        setAllUsers(data.users)
+      } else {
+        console.error('Failed to load users:', data.error)
+      }
+    } catch (error) {
+      console.error('Error loading users:', error)
+    }
+  }
+
+  // New: Load user-specific activities
+  const loadUserActivities = async (userId, userName) => {
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/management/activity-logs/user/${userId}`)
+      const data = await response.json()
+      
+      if (data.success) {
+        setUserActivities(data.activities)
+        setSelectedUser({ id: userId, name: userName })
+        setShowUserModal(true)
+      } else {
+        console.error('Failed to load user activities:', data.error)
+        alert('Failed to load user activities')
+      }
+    } catch (error) {
+      console.error('Error loading user activities:', error)
+      alert('Error loading user activities')
+    }
+    setLoading(false)
+  }
+
+  // New: Export user activities as CSV
+  const exportUserActivitiesCSV = async () => {
+    if (!selectedUser) return
+    
+    setExportingCsv(true)
+    try {
+      const response = await fetch(`/api/management/activity-logs/export/${selectedUser.id}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'text/csv'
+        }
+      })
+      
+      if (response.ok) {
+        const csvContent = await response.text()
+        const blob = new Blob([csvContent], { type: 'text/csv' })
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `${selectedUser.name.replace(/\s+/g, '_')}_activity_logs_${new Date().toISOString().split('T')[0]}.csv`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+      } else {
+        const errorData = await response.json()
+        alert(`Export failed: ${errorData.error}`)
+      }
+    } catch (error) {
+      console.error('Export error:', error)
+      alert('Failed to export CSV')
+    }
+    setExportingCsv(false)
   }
 
   const handleRefresh = async () => {
@@ -123,6 +205,13 @@ export default function ManagementActivityLogsPage() {
     })
     setTimeout(() => loadActivityLogs(), 100)
   }
+
+  // Filter users based on search term
+  const filteredUsers = allUsers.filter(user => 
+    user.fullName?.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+    user.email?.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+    user.role?.toLowerCase().includes(userSearchTerm.toLowerCase())
+  )
 
   const getActionIcon = (action, category) => {
     switch (action) {
@@ -233,12 +322,13 @@ export default function ManagementActivityLogsPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         <button
-              onClick={() => router.push('/management-dashboard')}
-              className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm text-gray-600 rounded-xl hover:bg-white hover:text-gray-900 transition-all duration-200 border border-white/20 shadow-sm"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">Dashboard</span>
+          onClick={() => router.push('/management-dashboard')}
+          className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm text-gray-600 rounded-xl hover:bg-white hover:text-gray-900 transition-all duration-200 border border-white/20 shadow-sm"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span className="hidden sm:inline">Dashboard</span>
         </button>
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -296,7 +386,61 @@ export default function ManagementActivityLogsPage() {
           </div>
         </div>
 
-        {/* Filters */}
+        {/* User Search Section */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6">
+          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Search className="w-5 h-5 text-blue-600" />
+            Search Users
+          </h3>
+          
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Search users by name, email, or role..."
+              value={userSearchTerm}
+              onChange={(e) => setUserSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
+            />
+          </div>
+
+          {userSearchTerm && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-60 overflow-y-auto">
+              {filteredUsers.map((user) => (
+                <button
+                  key={user._id}
+                  onClick={() => loadUserActivities(user._id, user.fullName)}
+                  className="p-3 bg-white rounded-xl border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 text-left"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-500 rounded-lg flex items-center justify-center">
+                      <span className="text-white font-bold text-sm">
+                        {user.fullName?.charAt(0)?.toUpperCase() || '?'}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-gray-900 truncate">{user.fullName}</div>
+                      <div className="text-sm text-gray-500 truncate">{user.email}</div>
+                      <div className="flex items-center gap-1 mt-1">
+                        {getRoleIcon(user.role)}
+                        <span className="text-xs text-gray-500 capitalize">{user.role}</span>
+                      </div>
+                    </div>
+                    <ExternalLink className="w-4 h-4 text-gray-400" />
+                  </div>
+                </button>
+              ))}
+              
+              {filteredUsers.length === 0 && (
+                <div className="col-span-full text-center py-4 text-gray-500">
+                  No users found matching "{userSearchTerm}"
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Existing filters section */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6">
           <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
             <Filter className="w-5 h-5 text-blue-600" />
@@ -334,6 +478,9 @@ export default function ManagementActivityLogsPage() {
             </button>
           </div>
         </div>
+
+        {/* Rest of your existing content - Activity Categories Chart, Top Active Users, Activity Logs List, etc. */}
+        {/* ... (keeping all the existing sections as they are) ... */}
 
         {/* Activity Categories Chart */}
         {stats.categoryStats && stats.categoryStats.length > 0 && (
@@ -375,7 +522,7 @@ export default function ManagementActivityLogsPage() {
             
             <div className="space-y-3">
               {topUsers.map((user, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-blue-50 transition-colors">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-500 rounded-lg flex items-center justify-center">
                       <span className="text-white font-bold text-sm">
@@ -390,9 +537,18 @@ export default function ManagementActivityLogsPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-lg font-bold text-blue-600">{user.activityCount}</div>
-                    <div className="text-xs text-gray-500">activities</div>
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-blue-600">{user.activityCount}</div>
+                      <div className="text-xs text-gray-500">activities</div>
+                    </div>
+                    <button
+                      onClick={() => loadUserActivities(user._id, user.userName)}
+                      className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+                    >
+                      <Eye className="w-3 h-3" />
+                      View
+                    </button>
                   </div>
                 </div>
               ))}
@@ -427,6 +583,9 @@ export default function ManagementActivityLogsPage() {
                       </th>
                       <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
                         Timestamp
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
+                        Actions
                       </th>
                     </tr>
                   </thead>
@@ -475,20 +634,6 @@ export default function ManagementActivityLogsPage() {
                         
                         <td className="px-6 py-4">
                           <div className="text-sm">
-                            <div className="flex items-center gap-2 mb-1">
-                              {getDeviceIcon(activity.deviceType)}
-                              <span className="capitalize">{activity.deviceType || 'Unknown'}</span>
-                            </div>
-                            {activity.ipAddress && (
-                              <div className="text-xs text-gray-500">
-                                IP: {activity.ipAddress}
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                        
-                        <td className="px-6 py-4">
-                          <div className="text-sm">
                             <div className="font-medium text-gray-900">
                               {formatTimeAgo(activity.timestamp)}
                             </div>
@@ -496,6 +641,17 @@ export default function ManagementActivityLogsPage() {
                               {formatTime(activity.timestamp)}
                             </div>
                           </div>
+                        </td>
+                        
+                        <td className="px-6 py-4">
+                          <button
+                            onClick={() => loadUserActivities(activity.userId, activity.userName)}
+                            className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+                            disabled={!activity.userId}
+                          >
+                            <Eye className="w-4 h-4" />
+                            View User
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -535,7 +691,7 @@ export default function ManagementActivityLogsPage() {
                       </div>
                     </div>
                     
-                    <div className="space-y-2 text-sm text-gray-600">
+                    <div className="space-y-2 text-sm text-gray-600 mb-4">
                       <div className="flex items-center gap-2">
                         {getRoleIcon(activity.userRole)}
                         <span className="capitalize">{activity.userRole || 'Unknown Role'}</span>
@@ -550,6 +706,15 @@ export default function ManagementActivityLogsPage() {
                         </div>
                       )}
                     </div>
+                    
+                    <button
+                      onClick={() => loadUserActivities(activity.userId, activity.userName)}
+                      className="w-full bg-blue-100 hover:bg-blue-200 text-blue-700 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1"
+                      disabled={!activity.userId}
+                    >
+                      <Eye className="w-4 h-4" />
+                      View User Activities
+                    </button>
                   </div>
                 ))}
               </div>
@@ -572,6 +737,120 @@ export default function ManagementActivityLogsPage() {
             </div>
           )}
         </div>
+
+        {/* User Activities Modal */}
+        {showUserModal && selectedUser && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-3xl shadow-2xl border border-white/20 p-6 max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-500 rounded-xl flex items-center justify-center">
+                    <span className="text-white font-bold text-lg">
+                      {selectedUser.name?.charAt(0)?.toUpperCase() || '?'}
+                    </span>
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">{selectedUser.name}</h2>
+                    <p className="text-gray-600">Activity History ({userActivities.length} records)</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={exportUserActivitiesCSV}
+                    disabled={exportingCsv || userActivities.length === 0}
+                    className="flex items-center gap-2 bg-green-500 hover:bg-green-600 disabled:bg-green-300 text-white px-4 py-2 rounded-xl font-medium transition-colors"
+                  >
+                    {exportingCsv ? (
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Download className="w-4 h-4" />
+                    )}
+                    Export CSV
+                  </button>
+                  <button
+                    onClick={() => setShowUserModal(false)}
+                    className="text-gray-400 hover:text-gray-600 p-2 rounded-xl hover:bg-gray-100 transition-colors"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Content */}
+              <div className="flex-1 overflow-y-auto">
+                {userActivities.length > 0 ? (
+                  <div className="space-y-3">
+                    {userActivities.map((activity, index) => (
+                      <div key={index} className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3 flex-1">
+                            {getActionIcon(activity.action, activity.category)}
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-bold text-gray-900 capitalize">
+                                  {activity.action?.replace('_', ' ') || 'Unknown Action'}
+                                </span>
+                                <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-bold rounded-full border ${getCategoryColor(activity.category)}`}>
+                                  {activity.category}
+                                </span>
+                              </div>
+                              
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
+                                <div className="flex items-center gap-2">
+                                  <Clock className="w-3 h-3" />
+                                  <span>{formatTime(activity.timestamp)}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {getDeviceIcon(activity.deviceType)}
+                                  <span className="capitalize">{activity.deviceType || 'Unknown'}</span>
+                                </div>
+                                {activity.ipAddress && (
+                                  <div className="flex items-center gap-2">
+                                    <Monitor className="w-3 h-3" />
+                                    <span>IP: {activity.ipAddress}</span>
+                                  </div>
+                                )}
+                              </div>
+
+                              {activity.details && Object.keys(activity.details).length > 0 && (
+                                <div className="mt-2 p-2 bg-white rounded-lg border border-gray-200">
+                                  <div className="text-xs font-medium text-gray-700 mb-1">Details:</div>
+                                  <div className="text-xs text-gray-600 space-y-1">
+                                    {Object.entries(activity.details).map(([key, value]) => (
+                                      <div key={key} className="flex justify-between">
+                                        <span className="font-medium">{key}:</span>
+                                        <span>{value?.toString() || 'N/A'}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="text-right ml-4">
+                            <div className="text-sm font-medium text-gray-900">
+                              {formatTimeAgo(activity.timestamp)}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <Activity className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">No Activities Found</h3>
+                    <p className="text-gray-600">No activities recorded for this user.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Summary Footer */}
         <div className="bg-gradient-to-r from-green-500 via-blue-500 to-purple-500 rounded-2xl p-8 text-white text-center shadow-xl">

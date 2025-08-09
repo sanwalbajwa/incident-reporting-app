@@ -212,17 +212,160 @@ export class ActivityLog {
     ]).toArray()
   }
   
-  static async getUserActivity(userId, limit = 20) {
-    const client = await clientPromise
-    const db = client.db('incident-reporting-db')
-    const activityLogs = db.collection('activity_logs')
-    
-    return await activityLogs
-      .find({ userId: new ObjectId(userId) })
-      .sort({ timestamp: -1 })
-      .limit(limit)
-      .toArray()
+  static async getUserActivity(userId, limit = 100, options = {}) {
+  const client = await clientPromise
+  const db = client.db('incident-reporting-db')
+  const activityLogs = db.collection('activity_logs')
+  
+  const query = { userId: new ObjectId(userId) }
+  
+  // Add date range filtering if provided
+  if (options.dateFrom || options.dateTo) {
+    query.timestamp = {}
+    if (options.dateFrom) query.timestamp.$gte = new Date(options.dateFrom)
+    if (options.dateTo) query.timestamp.$lte = new Date(options.dateTo)
   }
+  
+  // Add category filtering if provided
+  if (options.category) {
+    query.category = options.category
+  }
+  
+  // Add action filtering if provided
+  if (options.action) {
+    query.action = options.action
+  }
+  
+  return await activityLogs
+    .find(query)
+    .sort({ timestamp: -1 })
+    .limit(limit)
+    .toArray()
+}
+
+// Get user activity statistics
+static async getUserActivityStats(userId, timeRange = '30d') {
+  const client = await clientPromise
+  const db = client.db('incident-reporting-db')
+  const activityLogs = db.collection('activity_logs')
+  
+  // Calculate time range
+  const now = new Date()
+  let startTime
+  
+  switch (timeRange) {
+    case '24h':
+      startTime = new Date(now.getTime() - (24 * 60 * 60 * 1000))
+      break
+    case '7d':
+      startTime = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000))
+      break
+    case '30d':
+      startTime = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000))
+      break
+    default:
+      startTime = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000))
+  }
+  
+  const pipeline = [
+    {
+      $match: {
+        userId: new ObjectId(userId),
+        timestamp: { $gte: startTime }
+      }
+    },
+    {
+      $group: {
+        _id: {
+          category: '$category',
+          action: '$action'
+        },
+        count: { $sum: 1 },
+        lastActivity: { $max: '$timestamp' },
+        firstActivity: { $min: '$timestamp' }
+      }
+    },
+    {
+      $sort: { count: -1 }
+    }
+  ]
+  
+  const stats = await activityLogs.aggregate(pipeline).toArray()
+  
+  // Get total count
+  const totalCount = await activityLogs.countDocuments({
+    userId: new ObjectId(userId),
+    timestamp: { $gte: startTime }
+  })
+  
+  // Get category breakdown
+  const categoryStats = await activityLogs.aggregate([
+    {
+      $match: {
+        userId: new ObjectId(userId),
+        timestamp: { $gte: startTime }
+      }
+    },
+    {
+      $group: {
+        _id: '$category',
+        count: { $sum: 1 }
+      }
+    },
+    {
+      $sort: { count: -1 }
+    }
+  ]).toArray()
+  
+  return {
+    timeRange,
+    totalActivities: totalCount,
+    categoryBreakdown: categoryStats,
+    actionBreakdown: stats,
+    period: {
+      from: startTime,
+      to: now
+    }
+  }
+}
+
+// Search activities across all users (for management)
+static async searchActivities(searchTerm, filters = {}, limit = 50) {
+  const client = await clientPromise
+  const db = client.db('incident-reporting-db')
+  const activityLogs = db.collection('activity_logs')
+  
+  const query = {}
+  
+  // Add search functionality
+  if (searchTerm) {
+    query.$or = [
+      { userName: { $regex: searchTerm, $options: 'i' } },
+      { userEmail: { $regex: searchTerm, $options: 'i' } },
+      { action: { $regex: searchTerm, $options: 'i' } },
+      { category: { $regex: searchTerm, $options: 'i' } }
+    ]
+  }
+  
+  // Apply filters
+  if (filters.category) query.category = filters.category
+  if (filters.action) query.action = filters.action
+  if (filters.userRole) query.userRole = filters.userRole
+  if (filters.deviceType) query.deviceType = filters.deviceType
+  
+  // Date range filtering
+  if (filters.dateFrom || filters.dateTo) {
+    query.timestamp = {}
+    if (filters.dateFrom) query.timestamp.$gte = new Date(filters.dateFrom)
+    if (filters.dateTo) query.timestamp.$lte = new Date(filters.dateTo)
+  }
+  
+  return await activityLogs
+    .find(query)
+    .sort({ timestamp: -1 })
+    .limit(limit)
+    .toArray()
+}
   
   static async getActivityByCategory(category, limit = 20) {
     const client = await clientPromise
