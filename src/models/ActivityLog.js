@@ -57,93 +57,106 @@ export class ActivityLog {
   }
   
   static async getActivityStats(timeRange = '24h') {
-    const client = await clientPromise
-    const db = client.db('incident-reporting-db')
-    const activityLogs = db.collection('activity_logs')
-    
-    // Calculate time range
-    const now = new Date()
-    let startTime
-    
-    switch (timeRange) {
-      case '1h':
-        startTime = new Date(now.getTime() - (1 * 60 * 60 * 1000))
-        break
-      case '24h':
-        startTime = new Date(now.getTime() - (24 * 60 * 60 * 1000))
-        break
-      case '7d':
-        startTime = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000))
-        break
-      case '30d':
-        startTime = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000))
-        break
-      default:
-        startTime = new Date(now.getTime() - (24 * 60 * 60 * 1000))
-    }
-    
-    const pipeline = [
-      {
-        $match: {
-          timestamp: { $gte: startTime }
-        }
-      },
-      {
-        $group: {
-          _id: {
-            category: '$category',
-            action: '$action'
-          },
-          count: { $sum: 1 },
-          lastActivity: { $max: '$timestamp' }
-        }
-      },
-      {
-        $sort: { count: -1 }
-      }
-    ]
-    
-    const stats = await activityLogs.aggregate(pipeline).toArray()
-    
-    // Get total activities in time range
-    const totalActivities = await activityLogs.countDocuments({
-      timestamp: { $gte: startTime }
-    })
-    
-    // Get unique users in time range
-    const uniqueUsers = await activityLogs.distinct('userId', {
-      timestamp: { $gte: startTime },
-      userId: { $ne: null }
-    })
-    
-    // Get activities by category
-    const categoryStats = await activityLogs.aggregate([
-      {
-        $match: {
-          timestamp: { $gte: startTime }
-        }
-      },
-      {
-        $group: {
-          _id: '$category',
-          count: { $sum: 1 },
-          lastActivity: { $max: '$timestamp' }
-        }
-      },
-      {
-        $sort: { count: -1 }
-      }
-    ]).toArray()
-    
-    return {
-      timeRange,
-      startTime,
-      totalActivities,
-      uniqueUsers: uniqueUsers.length,
-      categoryStats,
-      actionStats: stats
-    }
+  const client = await clientPromise
+  const db = client.db('incident-reporting-db')
+  const activityLogs = db.collection('activity_logs')
+  
+  // Calculate time range
+  const now = new Date()
+  let startTime
+  
+  switch (timeRange) {
+    case '1h':
+      startTime = new Date(now.getTime() - (1 * 60 * 60 * 1000))
+      break
+    case '24h':
+      startTime = new Date(now.getTime() - (24 * 60 * 60 * 1000))
+      break
+    case '7d':
+      startTime = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000))
+      break
+    case '30d':
+      startTime = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000))
+      break
+    default:
+      startTime = new Date(now.getTime() - (24 * 60 * 60 * 1000))
   }
+  
+  // Get total activities in time range
+  const totalActivities = await activityLogs.countDocuments({
+    timestamp: { $gte: startTime }
+  })
+  
+  // Get unique users using aggregation instead of distinct
+  const uniqueUsersResult = await activityLogs.aggregate([
+    {
+      $match: {
+        timestamp: { $gte: startTime },
+        userId: { $ne: null }
+      }
+    },
+    {
+      $group: {
+        _id: '$userId'
+      }
+    },
+    {
+      $count: 'count'
+    }
+  ]).toArray()
+  
+  const uniqueUsersCount = uniqueUsersResult[0]?.count || 0
+  
+  // Get activities by category
+  const categoryStats = await activityLogs.aggregate([
+    {
+      $match: {
+        timestamp: { $gte: startTime }
+      }
+    },
+    {
+      $group: {
+        _id: '$category',
+        count: { $sum: 1 },
+        lastActivity: { $max: '$timestamp' }
+      }
+    },
+    {
+      $sort: { count: -1 }
+    }
+  ]).toArray()
+  
+  // Get action stats
+  const actionStats = await activityLogs.aggregate([
+    {
+      $match: {
+        timestamp: { $gte: startTime }
+      }
+    },
+    {
+      $group: {
+        _id: {
+          category: '$category',
+          action: '$action'
+        },
+        count: { $sum: 1 },
+        lastActivity: { $max: '$timestamp' }
+      }
+    },
+    {
+      $sort: { count: -1 }
+    }
+  ]).toArray()
+  
+  return {
+    timeRange,
+    startTime,
+    totalActivities,
+    uniqueUsers: uniqueUsersCount,
+    categoryStats,
+    actionStats
+  }
+}
   
   static async getTopActiveUsers(limit = 10, timeRange = '24h') {
     const client = await clientPromise
