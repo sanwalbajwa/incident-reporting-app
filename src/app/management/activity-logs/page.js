@@ -232,17 +232,16 @@ export default function ManagementActivityLogsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
+        <button
               onClick={() => router.push('/management-dashboard')}
               className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm text-gray-600 rounded-xl hover:bg-white hover:text-gray-900 transition-all duration-200 border border-white/20 shadow-sm"
             >
               <ArrowLeft className="w-4 h-4" />
               <span className="hidden sm:inline">Dashboard</span>
-            </button>
+        </button>
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
                 <Crown className="w-8 h-8 text-blue-600" />
@@ -252,15 +251,6 @@ export default function ManagementActivityLogsPage() {
               <p className="text-gray-600 mt-1">Monitor all user activities and system events</p>
             </div>
           </div>
-          
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white px-4 py-2 rounded-xl font-medium transition-colors"
-          >
-            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
         </div>
 
         {/* Statistics Overview */}
