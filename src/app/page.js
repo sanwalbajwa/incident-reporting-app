@@ -237,12 +237,6 @@ export default function Home() {
             </div>
           </div>
         </div>
-
-        {/* System Status */}
-        <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-2xl p-6 text-white text-center shadow-xl">
-          <h3 className="text-lg font-bold mb-2">System Status</h3>
-          <p className="text-sm opacity-90">{connectionStatus}</p>
-        </div>
       </div>
     </main>
   )
