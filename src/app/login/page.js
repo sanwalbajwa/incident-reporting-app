@@ -1,10 +1,11 @@
-// src/app/login/page.js - Fixed with Suspense boundary
+// src/app/login/page.js - Enhanced with location tracking
 
 'use client'
 import { useState, useEffect, Suspense } from 'react'
 import { signIn, useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { LocationService } from '@/lib/locationService'
 import { 
   Mail, 
   Lock, 
@@ -19,7 +20,9 @@ import {
   Crown,
   HardHat,
   Smartphone,
-  Tablet
+  Tablet,
+  MapPin,
+  Loader2
 } from 'lucide-react'
 
 // Separate component for handling search params
@@ -32,9 +35,19 @@ function LoginForm() {
   const [errorType, setErrorType] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [locationStatus, setLocationStatus] = useState({
+    loading: false,
+    data: null,
+    error: null
+  })
   const router = useRouter()
   const searchParams = useSearchParams()
   const { data: session, status } = useSession()
+
+  // Load location on component mount
+  useEffect(() => {
+    loadLocation()
+  }, [])
 
   // Check for URL parameters (like error from NextAuth)
   useEffect(() => {
@@ -73,6 +86,28 @@ function LoginForm() {
     }
   }, [session, status, router])
 
+  const loadLocation = async () => {
+    setLocationStatus({ loading: true, data: null, error: null })
+    
+    try {
+      const location = await LocationService.getCurrentLocation()
+      setLocationStatus({ 
+        loading: false, 
+        data: location, 
+        error: location.error 
+      })
+      
+      console.log('Location loaded:', location)
+    } catch (error) {
+      console.error('Location error:', error)
+      setLocationStatus({ 
+        loading: false, 
+        data: null, 
+        error: error.message 
+      })
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
@@ -80,9 +115,19 @@ function LoginForm() {
     setErrorType('')
 
     try {
-      const result = await signIn('credentials', {
+      // Prepare credentials with location data
+      const credentials = {
         email: formData.email,
-        password: formData.password,
+        password: formData.password
+      }
+
+      // Include location data if available
+      if (locationStatus.data) {
+        credentials.locationData = JSON.stringify(locationStatus.data)
+      }
+
+      const result = await signIn('credentials', {
+        ...credentials,
         redirect: false
       })
 
@@ -122,6 +167,48 @@ function LoginForm() {
       setError('')
       setErrorType('')
     }
+  }
+
+  const getLocationDisplay = () => {
+    if (locationStatus.loading) {
+      return (
+        <div className="flex items-center gap-2 text-blue-600 text-sm">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          <span>Getting location...</span>
+        </div>
+      )
+    }
+
+    if (locationStatus.error) {
+      return (
+        <div className="flex items-center gap-2 text-amber-600 text-sm">
+          <AlertCircle className="w-4 h-4" />
+          <span>Location unavailable</span>
+        </div>
+      )
+    }
+
+    if (locationStatus.data) {
+      const location = locationStatus.data
+      const display = LocationService.formatLocationForDisplay(location)
+      const accuracy = LocationService.getAccuracyDescription(location.accuracy)
+      
+      return (
+        <div className="flex items-center gap-2 text-green-600 text-sm">
+          <MapPin className="w-4 h-4" />
+          <div className="flex-1">
+            <div className="font-medium">{display}</div>
+            {location.source && (
+              <div className="text-xs opacity-75">
+                Source: {location.source.toUpperCase()} • Accuracy: {accuracy}
+              </div>
+            )}
+          </div>
+        </div>
+      )
+    }
+
+    return null
   }
 
   // Show loading while checking session
@@ -167,6 +254,22 @@ function LoginForm() {
 
         {/* Main Form Card */}
         <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 p-8">
+          
+          {/* Location Status */}
+          <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700">Location Status</span>
+              <button
+                onClick={loadLocation}
+                disabled={locationStatus.loading}
+                className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+              >
+                {locationStatus.loading ? 'Loading...' : 'Refresh'}
+              </button>
+            </div>
+            {getLocationDisplay()}
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-6">
             
             {/* Email Field */}

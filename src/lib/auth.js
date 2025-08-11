@@ -1,4 +1,4 @@
-// Step 1: Update your existing src/lib/auth.js to include activity logging
+// src/lib/auth.js - Updated with location tracking
 
 import CredentialsProvider from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
@@ -12,7 +12,9 @@ export const authOptions = {
       name: 'credentials',
       credentials: {
         email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' }
+        password: { label: 'Password', type: 'password' },
+        // NEW: Add location data to credentials
+        locationData: { label: 'Location', type: 'text' }
       },
       async authorize(credentials, req) {
         try {
@@ -23,8 +25,18 @@ export const authOptions = {
           const userAgent = req.headers?.['user-agent'] || ''
           const deviceInfo = getDeviceInfo(userAgent)
           
+          // Parse location data if provided
+          let locationData = null
+          if (credentials.locationData) {
+            try {
+              locationData = JSON.parse(credentials.locationData)
+            } catch (error) {
+              console.log('Failed to parse location data:', error)
+            }
+          }
+          
           if (!deviceInfo.isAllowed) {
-            // Log blocked device attempt
+            // Log blocked device attempt with location
             await logActivity({
               userId: null,
               userName: null,
@@ -35,9 +47,11 @@ export const authOptions = {
               details: {
                 reason: 'device_blocked',
                 deviceType: deviceInfo.deviceType,
-                email: credentials.email
+                email: credentials.email,
+                location: locationData // NEW: Include location
               },
-              request: req
+              request: req,
+              locationData: locationData // NEW: Store location data
             })
             
             throw new Error(`DEVICE_BLOCKED:${deviceInfo.deviceType}`)
@@ -46,7 +60,7 @@ export const authOptions = {
           const user = await User.findByEmail(credentials.email)
           
           if (!user) {
-            // Log failed login - user not found
+            // Log failed login - user not found with location
             await logActivity({
               userId: null,
               userName: null,
@@ -56,9 +70,11 @@ export const authOptions = {
               category: 'authentication',
               details: {
                 reason: 'user_not_found',
-                email: credentials.email
+                email: credentials.email,
+                location: locationData // NEW: Include location
               },
-              request: req
+              request: req,
+              locationData: locationData // NEW: Store location data
             })
             
             return null
@@ -67,7 +83,7 @@ export const authOptions = {
           const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
 
           if (!isPasswordValid) {
-            // Log failed login - invalid password
+            // Log failed login - invalid password with location
             await logActivity({
               userId: user._id.toString(),
               userName: user.fullName,
@@ -77,15 +93,17 @@ export const authOptions = {
               category: 'authentication',
               details: {
                 reason: 'invalid_password',
-                email: credentials.email
+                email: credentials.email,
+                location: locationData // NEW: Include location
               },
-              request: req
+              request: req,
+              locationData: locationData // NEW: Store location data
             })
             
             return null
           }
 
-          // Log successful login
+          // Log successful login with location
           await logActivity({
             userId: user._id.toString(),
             userName: user.fullName,
@@ -95,9 +113,11 @@ export const authOptions = {
             category: 'authentication',
             details: {
               deviceType: deviceInfo.deviceType,
-              loginTime: new Date().toISOString()
+              loginTime: new Date().toISOString(),
+              location: locationData // NEW: Include location
             },
-            request: req
+            request: req,
+            locationData: locationData // NEW: Store location data
           })
           
           await User.updateLastLogin(user._id.toString())
@@ -141,7 +161,7 @@ export const authOptions = {
   },
   events: {
     async signOut({ token }) {
-      // Log logout activity
+      // Log logout activity with location (if available in session)
       if (token?.sub) {
         try {
           const user = await User.findById(token.sub)
@@ -155,6 +175,7 @@ export const authOptions = {
               category: 'authentication',
               details: {
                 logoutTime: new Date().toISOString()
+                // Note: Location for logout will be handled client-side
               }
             })
           }
