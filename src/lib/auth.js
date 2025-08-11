@@ -160,30 +160,6 @@ export const authOptions = {
     }
   },
   events: {
-    async signOut({ token }) {
-      // Log logout activity with location (if available in session)
-      if (token?.sub) {
-        try {
-          const user = await User.findById(token.sub)
-          if (user) {
-            await logActivity({
-              userId: user._id.toString(),
-              userName: user.fullName,
-              userEmail: user.email,
-              userRole: user.role,
-              action: 'logout',
-              category: 'authentication',
-              details: {
-                logoutTime: new Date().toISOString()
-                // Note: Location for logout will be handled client-side
-              }
-            })
-          }
-        } catch (error) {
-          console.error('Error logging logout activity:', error)
-        }
-      }
-    }
   },
   pages: {
     signIn: '/login',

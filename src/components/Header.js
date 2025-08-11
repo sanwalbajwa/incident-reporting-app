@@ -1,5 +1,6 @@
 'use client'
-import { useSession, signOut } from 'next-auth/react'
+import { useSession } from 'next-auth/react'
+import { useLogoutWithLocation } from '@/hooks/useLogoutWithLocation'
 import { useRouter, usePathname } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
@@ -29,7 +30,7 @@ export default function Header() {
   const pathname = usePathname()
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
-  
+  const { logoutWithLocation } = useLogoutWithLocation()
   // Refs for click outside detection
   const mobileMenuRef = useRef(null)
   const userMenuRef = useRef(null)
@@ -204,7 +205,7 @@ export default function Header() {
   const handleSignOut = () => {
     setShowUserMenu(false)
     setShowMobileMenu(false)
-    signOut()
+    logoutWithLocation()
   }
 
   return (
