@@ -697,7 +697,7 @@ export default function ManagementActivityLogsPage() {
                             ) : (
                               <div className="flex items-center gap-2 text-gray-400">
                                 <MapPin className="w-4 h-4" />
-                                <span className="text-sm">No location data</span>
+                                <span className="text-sm">Location not required</span>
                               </div>
                             )}
                           </div>
@@ -800,7 +800,7 @@ export default function ManagementActivityLogsPage() {
                       ) : (
                         <div className="flex items-center gap-2 text-gray-400">
                           <MapPin className="w-4 h-4" />
-                          <span className="text-sm">No location data</span>
+                          <span className="text-sm">Location not required</span>
                         </div>
                       )}
                       
