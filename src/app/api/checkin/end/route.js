@@ -1,3 +1,5 @@
+// src/app/api/checkin/end/route.js - Enhanced with location tracking
+
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { CheckIn } from '@/models/CheckIn'
@@ -12,15 +14,22 @@ export async function POST(request) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 })
     }
     
-    const { notes } = await request.json()
+    const { notes, locationData } = await request.json()
+    
+    console.log('End shift request with location:', {
+      hasLocationData: !!locationData,
+      locationSource: locationData?.source
+    })
     
     let shiftDuration = null
     let shiftId = null
     
     try {
-      await CheckIn.endShift(session.user.id, notes || '')
+      const result = await CheckIn.endShift(session.user.id, notes || '', locationData)
+      shiftDuration = result.shiftDuration
+      shiftId = result.shiftId
     } catch (error) {
-      // Fallback logic
+      // Fallback logic with location tracking
       const client = await clientPromise
       const db = client.db('incident-reporting-db')
       const checkins = db.collection('checkins')
@@ -43,6 +52,7 @@ export async function POST(request) {
               status: 'completed',
               shiftDuration,
               notes: notes || '',
+              endLocationData: locationData, // NEW: Store end location
               updatedAt: new Date()
             }
           }
@@ -52,7 +62,7 @@ export async function POST(request) {
       }
     }
     
-    // Log shift end activity
+    // Log shift end activity with location
     await logActivity({
       userId: session.user.id,
       userName: session.user.name,
@@ -64,9 +74,12 @@ export async function POST(request) {
         shiftId: shiftId,
         duration: shiftDuration ? `${Math.floor(shiftDuration / 60)}h ${shiftDuration % 60}m` : 'Unknown',
         notes: notes || 'No notes',
-        endTime: new Date().toISOString()
+        endTime: new Date().toISOString(),
+        hasLocationData: !!locationData,
+        locationSource: locationData?.source
       },
-      request
+      request,
+      locationData: locationData // NEW: Include location data in activity log
     })
     
     return Response.json({
@@ -76,10 +89,12 @@ export async function POST(request) {
   } catch (error) {
     console.error('End shift error:', error)
     
-    // Log failed shift end
+    // Log failed shift end with location if available
     try {
       const session = await getServerSession(authOptions)
       if (session) {
+        const { locationData } = await request.json().catch(() => ({}))
+        
         await logActivity({
           userId: session.user.id,
           userName: session.user.name,
@@ -91,7 +106,8 @@ export async function POST(request) {
             error: error.message,
             timestamp: new Date().toISOString()
           },
-          request
+          request,
+          locationData: locationData // NEW: Include location data even for failed attempts
         })
       }
     } catch (logError) {

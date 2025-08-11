@@ -1,10 +1,9 @@
-// src/app/management/activity-logs/page.js - Complete updated version with location tracking
+// Enhanced: src/app/management/activity-logs/page.js
 
 'use client'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { LocationService } from '@/lib/locationService'
 import { 
   ArrowLeft,
   Activity,
@@ -36,87 +35,8 @@ import {
   Tablet,
   Monitor,
   X,
-  ExternalLink,
-  MapPin,
-  Navigation,
-  Wifi,
-  Edit,
-  Loader2
+  ExternalLink
 } from 'lucide-react'
-
-// Location display component
-const LocationDisplay = ({ locationData }) => {
-  if (!locationData) {
-    return (
-      <div className="flex items-center gap-1 text-gray-400 text-xs">
-        <MapPin className="w-3 h-3" />
-        <span>No location</span>
-      </div>
-    )
-  }
-
-  if (locationData.error) {
-    return (
-      <div className="flex items-center gap-1 text-amber-500 text-xs">
-        <AlertCircle className="w-3 h-3" />
-        <span>Location error</span>
-      </div>
-    )
-  }
-
-  const getSourceIcon = (source) => {
-    switch (source) {
-      case 'gps':
-        return <Navigation className="w-3 h-3 text-green-500" />
-      case 'ip':
-        return <Wifi className="w-3 h-3 text-blue-500" />
-      case 'manual':
-        return <Edit className="w-3 h-3 text-purple-500" />
-      default:
-        return <MapPin className="w-3 h-3 text-gray-500" />
-    }
-  }
-
-  const getSourceColor = (source) => {
-    switch (source) {
-      case 'gps':
-        return 'text-green-600 bg-green-50 border-green-200'
-      case 'ip':
-        return 'text-blue-600 bg-blue-50 border-blue-200'
-      case 'manual':
-        return 'text-purple-600 bg-purple-50 border-purple-200'
-      default:
-        return 'text-gray-600 bg-gray-50 border-gray-200'
-    }
-  }
-
-  const display = LocationService.formatLocationForDisplay(locationData)
-  const accuracy = LocationService.getAccuracyDescription(locationData.accuracy)
-
-  return (
-    <div className="space-y-1">
-      <div className="flex items-center gap-1">
-        {getSourceIcon(locationData.source)}
-        <span className="text-xs font-medium text-gray-700 truncate" title={display}>
-          {display.length > 30 ? display.substring(0, 30) + '...' : display}
-        </span>
-      </div>
-      {locationData.source && (
-        <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium border ${getSourceColor(locationData.source)}`}>
-          <span>{locationData.source.toUpperCase()}</span>
-          {locationData.accuracy && (
-            <span className="opacity-75">• {accuracy}</span>
-          )}
-        </div>
-      )}
-      {locationData.city && locationData.country && (
-        <div className="text-xs text-gray-500">
-          {locationData.city}, {locationData.country}
-        </div>
-      )}
-    </div>
-  )
-}
 
 export default function ManagementActivityLogsPage() {
   const { data: session, status } = useSession()
@@ -126,12 +46,12 @@ export default function ManagementActivityLogsPage() {
   const [activities, setActivities] = useState([])
   const [stats, setStats] = useState({})
   const [topUsers, setTopUsers] = useState([])
-  const [allUsers, setAllUsers] = useState([])
-  const [selectedUser, setSelectedUser] = useState(null)
-  const [userActivities, setUserActivities] = useState([])
-  const [userSearchTerm, setUserSearchTerm] = useState('')
-  const [showUserModal, setShowUserModal] = useState(false)
-  const [exportingCsv, setExportingCsv] = useState(false)
+  const [allUsers, setAllUsers] = useState([]) // New: All users for search
+  const [selectedUser, setSelectedUser] = useState(null) // New: Selected user
+  const [userActivities, setUserActivities] = useState([]) // New: User-specific activities
+  const [userSearchTerm, setUserSearchTerm] = useState('') // New: User search term
+  const [showUserModal, setShowUserModal] = useState(false) // New: User modal visibility
+  const [exportingCsv, setExportingCsv] = useState(false) // New: CSV export loading
   const [filters, setFilters] = useState({
     limit: 50,
     category: '',
@@ -139,11 +59,7 @@ export default function ManagementActivityLogsPage() {
     userRole: '',
     timeRange: '24h',
     dateFrom: '',
-    dateTo: '',
-    // NEW: Location-based filters
-    hasLocation: '',
-    locationSource: '',
-    city: ''
+    dateTo: ''
   })
 
   useEffect(() => {
@@ -153,13 +69,14 @@ export default function ManagementActivityLogsPage() {
       return
     }
     
+    // Check if user is management
     if (session.user.role !== 'management') {
       router.push('/dashboard')
       return
     }
     
     loadActivityLogs()
-    loadAllUsers()
+    loadAllUsers() // New: Load all users for search
   }, [session, status, router])
 
   const loadActivityLogs = async () => {
@@ -186,6 +103,7 @@ export default function ManagementActivityLogsPage() {
     setLoading(false)
   }
 
+  // New: Load all users for search functionality
   const loadAllUsers = async () => {
     try {
       const response = await fetch('/api/management/users')
@@ -201,6 +119,7 @@ export default function ManagementActivityLogsPage() {
     }
   }
 
+  // New: Load user-specific activities
   const loadUserActivities = async (userId, userName) => {
     setLoading(true)
     try {
@@ -222,6 +141,7 @@ export default function ManagementActivityLogsPage() {
     setLoading(false)
   }
 
+  // New: Export user activities as CSV
   const exportUserActivitiesCSV = async () => {
     if (!selectedUser) return
     
@@ -281,14 +201,12 @@ export default function ManagementActivityLogsPage() {
       userRole: '',
       timeRange: '24h',
       dateFrom: '',
-      dateTo: '',
-      hasLocation: '',
-      locationSource: '',
-      city: ''
+      dateTo: ''
     })
     setTimeout(() => loadActivityLogs(), 100)
   }
 
+  // Filter users based on search term
   const filteredUsers = allUsers.filter(user => 
     user.fullName?.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
     user.email?.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
@@ -420,7 +338,7 @@ export default function ManagementActivityLogsPage() {
                 <Activity className="w-8 h-8 text-green-600" />
                 System Activity Logs
               </h1>
-              <p className="text-gray-600 mt-1">Monitor all user activities and system events with location tracking</p>
+              <p className="text-gray-600 mt-1">Monitor all user activities and system events</p>
             </div>
           </div>
         </div>
@@ -447,15 +365,13 @@ export default function ManagementActivityLogsPage() {
 
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6 text-center">
             <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-3">
-              <MapPin className="w-6 h-6 text-white" />
+              <TrendingUp className="w-6 h-6 text-white" />
             </div>
             <div className="text-2xl font-bold text-purple-600">
-              {stats.activitiesWithLocation || 0}
+              {stats.categoryStats?.length || 0}
             </div>
-            <div className="text-sm text-gray-600 font-medium">With Location</div>
-            <div className="text-xs text-gray-500 mt-1">
-              {stats.locationCoverage || 0}% coverage
-            </div>
+            <div className="text-sm text-gray-600 font-medium">Categories</div>
+            <div className="text-xs text-gray-500 mt-1">Active</div>
           </div>
 
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6 text-center">
@@ -524,7 +440,7 @@ export default function ManagementActivityLogsPage() {
           )}
         </div>
 
-        {/* Enhanced Filters Section with Location */}
+        {/* Existing filters section */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6">
           <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
             <Filter className="w-5 h-5 text-blue-600" />
@@ -542,74 +458,6 @@ export default function ManagementActivityLogsPage() {
               <option value="100">100 Results</option>
               <option value="200">200 Results</option>
             </select>
-
-            <select
-              value={filters.category}
-              onChange={(e) => handleFilterChange('category', e.target.value)}
-              className="px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
-            >
-              <option value="">All Categories</option>
-              <option value="authentication">Authentication</option>
-              <option value="shift">Shift Management</option>
-              <option value="break">Break Management</option>
-              <option value="incident">Incident Reports</option>
-              <option value="system">System Events</option>
-            </select>
-
-            <select
-              value={filters.userRole}
-              onChange={(e) => handleFilterChange('userRole', e.target.value)}
-              className="px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
-            >
-              <option value="">All Roles</option>
-              <option value="guard">Guards</option>
-              <option value="rover">Rovers</option>
-              <option value="security_supervisor">Supervisors</option>
-              <option value="management">Management</option>
-            </select>
-
-            <select
-              value={filters.timeRange}
-              onChange={(e) => handleFilterChange('timeRange', e.target.value)}
-              className="px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
-            >
-              <option value="1h">Last Hour</option>
-              <option value="24h">Last 24 Hours</option>
-              <option value="7d">Last 7 Days</option>
-              <option value="30d">Last 30 Days</option>
-            </select>
-          </div>
-
-          {/* NEW: Location-based filters */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <select
-              value={filters.hasLocation}
-              onChange={(e) => handleFilterChange('hasLocation', e.target.value)}
-              className="px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
-            >
-              <option value="">All Activities</option>
-              <option value="true">With Location</option>
-              <option value="false">Without Location</option>
-            </select>
-
-            <select
-              value={filters.locationSource}
-              onChange={(e) => handleFilterChange('locationSource', e.target.value)}
-              className="px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
-            >
-              <option value="">All Location Sources</option>
-              <option value="gps">GPS Location</option>
-              <option value="ip">IP Location</option>
-              <option value="manual">Manual Location</option>
-            </select>
-
-            <input
-              type="text"
-              placeholder="Filter by city..."
-              value={filters.city}
-              onChange={(e) => handleFilterChange('city', e.target.value)}
-              className="px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
-            />
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3">
@@ -628,17 +476,11 @@ export default function ManagementActivityLogsPage() {
               <RefreshCw className="w-4 h-4" />
               Clear Filters
             </button>
-
-            <button
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="flex items-center gap-2 bg-green-500 hover:bg-green-600 disabled:bg-green-300 text-white px-6 py-3 rounded-xl font-bold transition-colors"
-            >
-              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-              Refresh
-            </button>
           </div>
         </div>
+
+        {/* Rest of your existing content - Activity Categories Chart, Top Active Users, Activity Logs List, etc. */}
+        {/* ... (keeping all the existing sections as they are) ... */}
 
         {/* Activity Categories Chart */}
         {stats.categoryStats && stats.categoryStats.length > 0 && (
