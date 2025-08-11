@@ -464,7 +464,7 @@ export default function ManagementActivityLogsPage() {
             <select
               value={filters.limit}
               onChange={(e) => handleFilterChange('limit', e.target.value)}
-              className="px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
+              className="px-4 py-3 text-black border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
             >
               <option value="25">25 Results</option>
               <option value="50">50 Results</option>
@@ -475,7 +475,7 @@ export default function ManagementActivityLogsPage() {
             <select
               value={filters.category}
               onChange={(e) => handleFilterChange('category', e.target.value)}
-              className="px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
+              className="px-4 py-3 text-black border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
             >
               <option value="">All Categories</option>
               <option value="authentication">Authentication</option>
@@ -489,7 +489,7 @@ export default function ManagementActivityLogsPage() {
             <select
               value={filters.hasLocation}
               onChange={(e) => handleFilterChange('hasLocation', e.target.value)}
-              className="px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
+              className="px-4 py-3 text-black border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
             >
               <option value="">All Locations</option>
               <option value="true">With Location</option>
@@ -499,7 +499,7 @@ export default function ManagementActivityLogsPage() {
             <select
               value={filters.locationSource}
               onChange={(e) => handleFilterChange('locationSource', e.target.value)}
-              className="px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
+              className="px-4 py-3 text-black border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
             >
               <option value="">All Sources</option>
               <option value="gps">GPS Location</option>

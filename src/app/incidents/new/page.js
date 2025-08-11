@@ -710,7 +710,7 @@ const handleSubmit = async (e) => {
                 value={formData.incidentDate}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
+                className="w-full px-4 py-3 text-black border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
               />
             </div>
 
@@ -726,7 +726,7 @@ const handleSubmit = async (e) => {
                 value={formData.incidentTime}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
+                className="w-full px-4 py-3 text-black border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
               />
             </div>
           </div>
@@ -776,7 +776,7 @@ const handleSubmit = async (e) => {
                 ? "Location related to your message (e.g., Main Lobby, Parking Level 2)" 
                 : "Describe specific location (e.g., Main Lobby, Parking Level 2, East Entrance)"
               }
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
+              className="w-full px-4 py-3 text-black border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
             />
           </div>
 
@@ -797,7 +797,7 @@ const handleSubmit = async (e) => {
                 ? "Enter your message to headquarters..."
                 : "Provide a detailed account of what happened, when, where, who was involved, what actions you took, etc."
               }
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
+              className="w-full px-4 py-3 text-black border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
             />
           </div>
           
@@ -900,7 +900,7 @@ const handleSubmit = async (e) => {
                 setFormData(prev => ({...prev, policeReportNumber: e.target.value}))
               }}
               placeholder="Enter police report number (e.g., PR-2024-12345)"
-              className="w-full px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+              className="w-full px-4 py-3 text-black border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
             />
           </div>
         </div>
@@ -924,7 +924,7 @@ const handleSubmit = async (e) => {
                 setFormData(prev => ({...prev, officerName: e.target.value}))
               }}
               placeholder="Officer's name (if known)"
-              className="w-full px-4 py-3 border border-yellow-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 bg-white"
+              className="w-full px-4 py-3 text-black border border-yellow-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 bg-white"
             />
           </div>
 
@@ -941,7 +941,7 @@ const handleSubmit = async (e) => {
                 setFormData(prev => ({...prev, officerBadge: e.target.value}))
               }}
               placeholder="Badge number or ID (if known)"
-              className="w-full px-4 py-3 border border-yellow-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 bg-white"
+              className="w-full px-4 py-3 text-black border border-yellow-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 bg-white"
             />
           </div>
         </div>
@@ -973,7 +973,7 @@ const handleSubmit = async (e) => {
                 onChange={handleFileChange}
                 multiple
                 accept="image/*,video/*,.pdf,.doc,.docx"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                className="w-full px-4 py-3 text-black border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
               />
               <p className="text-sm text-gray-600 mt-2 text-center">
                 You can select multiple files. Accepted formats: Images, Videos, PDF, Word documents

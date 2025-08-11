@@ -507,7 +507,7 @@ export default function CheckInPage() {
                   value={formData.location}
                   onChange={(e) => setFormData({...formData, location: e.target.value})}
                   placeholder="Building A, Main Entrance"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
+                  className="w-full px-4 py-3 text-black border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Add specific details about your location (auto-filled from GPS when available)
@@ -524,7 +524,7 @@ export default function CheckInPage() {
                   onChange={(e) => setFormData({...formData, notes: e.target.value})}
                   placeholder="Any special notes for this shift..."
                   rows="3"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
+                  className="w-full px-4 py-3 text-black border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
                 />
               </div>
             </div>

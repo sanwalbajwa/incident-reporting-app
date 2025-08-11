@@ -240,10 +240,10 @@ export default function BreakManager() {
               
               <div className="space-y-2 max-h-40 overflow-y-auto">
                 {breakStatus.todayBreaks.map((breakItem, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
+                  <div key={index} className="flex items-center justify-between text-black p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
                     <div className="flex items-center gap-2">
                       {getBreakTypeIcon(breakItem.type)}
-                      <span className="font-medium capitalize">{breakItem.type}</span>
+                      <span className="font-medium capitalize text-black">{breakItem.type}</span>
                     </div>
                     <div className="text-right">
                       <div className="text-sm font-bold text-gray-900">{breakItem.duration || 0} min</div>

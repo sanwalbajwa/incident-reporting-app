@@ -276,7 +276,7 @@ export default function ClientsPage() {
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
-                className="px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500  focus:border-blue-500 bg-white/50"
+                className="px-4 py-3 text-black border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500  focus:border-blue-500 bg-white/50"
               >
                 <option value="all">All Types</option>
                 {propertyTypes.map(type => (
@@ -379,7 +379,7 @@ export default function ClientsPage() {
                        onChange={handleChange}
                       required
                       placeholder="Riverside Apartments"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
+                      className="w-full px-4 py-3 text-black border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
            
                      />
                   </div>
@@ -399,7 +399,7 @@ export default function ClientsPage() {
                       required
                       placeholder="123 Main Street, City"
   
-                       className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
+                       className="w-full px-4 py-3 text-black border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
                     />
                   </div>
 
@@ -417,7 +417,7 @@ export default function ClientsPage() {
                       onChange={handleChange}
          
                        placeholder="John Smith"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
+                      className="w-full px-4 py-3 text-black border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
                     />
                   </div>
 
@@ -435,7 +435,7 @@ export default function ClientsPage() {
                
                        onChange={handleChange}
                       placeholder="+1-555-0123"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
+                      className="w-full px-4 py-3 text-black border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
                     />
                   </div>
 
@@ -453,7 +453,7 @@ export default function ClientsPage() {
                       value={formData.contactEmail}
                       onChange={handleChange}
                       placeholder="contact@property.com"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
+                      className="w-full px-4 py-3 text-black border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
                     />
     
                    </div>
@@ -469,7 +469,7 @@ export default function ClientsPage() {
                       value={formData.propertyType}
        
                        onChange={handleChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
+                      className="w-full px-4 py-3 text-black border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
                     >
                       <option value="Residential">Residential</option>
           
@@ -494,7 +494,7 @@ export default function ClientsPage() {
    
                    rows="3"
                     placeholder="Additional information about this property..."
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
+                    className="w-full px-4 py-3 text-black border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
                   />
            
                  </div>
