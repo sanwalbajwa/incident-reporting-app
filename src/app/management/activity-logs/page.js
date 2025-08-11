@@ -550,7 +550,7 @@ export default function ManagementActivityLogsPage() {
               placeholder="Search users by name, email, or role..."
               value={userSearchTerm}
               onChange={(e) => setUserSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
+              className="w-full pl-10 pr-4 py-3 text-black border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
             />
           </div>
 
