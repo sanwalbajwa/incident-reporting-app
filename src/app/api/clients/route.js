@@ -61,7 +61,7 @@ export async function POST(request) {
   }
 }
 
-// DELETE client
+// DELETE client - Updated to allow deletion even with active incidents
 export async function DELETE(request) {
   try {
     // FIX: Use authOptions consistently
@@ -100,21 +100,8 @@ export async function DELETE(request) {
     const client = await clientPromise
     const db = client.db('incident-reporting-db')
     
-    // Check if client has active incidents
-    const incidents = db.collection('incidents')
-    
-    const activeIncidents = await incidents.countDocuments({
-      clientId: new ObjectId(clientId),
-      status: { $in: ['submitted', 'reviewed'] }
-    })
-    
-    console.log('Active incidents count:', activeIncidents)
-    
-    if (activeIncidents > 0) {
-      return Response.json({
-        error: `Cannot delete client with ${activeIncidents} active incident(s). Please resolve all incidents first.`
-      }, { status: 400 })
-    }
+    // REMOVED: Check for active incidents - clients can now be deleted regardless
+    // This section has been completely removed to allow deletion with active incidents
     
     // Soft delete client
     const clients = db.collection('clients')
@@ -128,6 +115,14 @@ export async function DELETE(request) {
     
     console.log('Client found, proceeding with soft delete')
     
+    // Optional: Get count of incidents for logging purposes (not blocking)
+    const incidents = db.collection('incidents')
+    const incidentCount = await incidents.countDocuments({
+      clientId: new ObjectId(clientId)
+    })
+    
+    console.log(`Client has ${incidentCount} associated incidents (will remain in system)`)
+    
     const result = await clients.updateOne(
       { _id: new ObjectId(clientId) },
       {
@@ -136,7 +131,9 @@ export async function DELETE(request) {
           deletedAt: new Date(),
           deletedBy: session.user.id,
           deletedByName: session.user.name,
-          updatedAt: new Date()
+          updatedAt: new Date(),
+          // Add note about associated incidents for record keeping
+          deletionNote: incidentCount > 0 ? `Deleted with ${incidentCount} associated incident(s)` : 'Deleted with no associated incidents'
         }
       }
     )
@@ -155,8 +152,15 @@ export async function DELETE(request) {
       return Response.json({ error: 'Failed to delete client - no changes made' }, { status: 500 })
     }
     
+    // Success message includes incident count for transparency
+    let successMessage = 'Client deleted successfully'
+    if (incidentCount > 0) {
+      successMessage += `. Note: ${incidentCount} associated incident(s) will remain in the system for record keeping.`
+    }
+    
     return Response.json({
-      message: 'Client deleted successfully'
+      message: successMessage,
+      incidentCount: incidentCount // Include for frontend to show if needed
     })
     
   } catch (error) {

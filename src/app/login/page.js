@@ -380,7 +380,15 @@ function LoginForm() {
               )}
             </button>
           </form>
-
+          {/* Forgot Password Link */}
+          <div className="mt-6 text-center">
+            <Link 
+              href="/forgot-password" 
+              className="text-blue-600 hover:text-blue-700 font-medium underline decoration-2 underline-offset-2 hover:underline-offset-4 transition-all duration-200"
+            >
+              Forgot your password?
+            </Link>
+          </div>
           {/* Register Link */}
           <div className="mt-8 text-center">
             <p className="text-gray-600">
