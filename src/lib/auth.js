@@ -1,4 +1,4 @@
-// src/lib/auth.js - Updated with location tracking
+// src/lib/auth.js - Updated with role-based device restrictions
 
 import CredentialsProvider from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
@@ -13,7 +13,6 @@ export const authOptions = {
       credentials: {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
-        // NEW: Add location data to credentials
         locationData: { label: 'Location', type: 'text' }
       },
       async authorize(credentials, req) {
@@ -22,8 +21,43 @@ export const authOptions = {
             return null
           }
 
+          // First, get the user to check their role
+          const user = await User.findByEmail(credentials.email)
+          
+          if (!user) {
+            // Log failed login - user not found
+            const userAgent = req.headers?.['user-agent'] || ''
+            let locationData = null
+            if (credentials.locationData) {
+              try {
+                locationData = JSON.parse(credentials.locationData)
+              } catch (error) {
+                console.log('Failed to parse location data:', error)
+              }
+            }
+
+            await logActivity({
+              userId: null,
+              userName: null,
+              userEmail: credentials.email,
+              userRole: null,
+              action: 'login_failed',
+              category: 'authentication',
+              details: {
+                reason: 'user_not_found',
+                email: credentials.email,
+                location: locationData
+              },
+              request: req,
+              locationData: locationData
+            })
+            
+            return null
+          }
+
+          // NOW check device restrictions with the user's role
           const userAgent = req.headers?.['user-agent'] || ''
-          const deviceInfo = getDeviceInfo(userAgent)
+          const deviceInfo = getDeviceInfo(userAgent, user.role) // Pass user role here
           
           // Parse location data if provided
           let locationData = null
@@ -35,55 +69,38 @@ export const authOptions = {
             }
           }
           
+          // Apply device restrictions based on role
           if (!deviceInfo.isAllowed) {
-            // Log blocked device attempt with location
+            console.log(`Device blocked for ${user.role}: ${deviceInfo.deviceType}`)
+            
+            // Log blocked device attempt with role information
             await logActivity({
-              userId: null,
-              userName: null,
-              userEmail: credentials.email,
-              userRole: null,
+              userId: user._id.toString(),
+              userName: user.fullName,
+              userEmail: user.email,
+              userRole: user.role,
               action: 'login_blocked',
               category: 'authentication',
               details: {
                 reason: 'device_blocked',
                 deviceType: deviceInfo.deviceType,
+                userRole: user.role,
+                isManagementException: deviceInfo.isManagementException,
                 email: credentials.email,
-                location: locationData // NEW: Include location
+                location: locationData
               },
               request: req,
-              locationData: locationData // NEW: Store location data
+              locationData: locationData
             })
             
-            throw new Error(`DEVICE_BLOCKED:${deviceInfo.deviceType}`)
+            throw new Error(`DEVICE_BLOCKED:${deviceInfo.deviceType}:${user.role}`)
           }
 
-          const user = await User.findByEmail(credentials.email)
-          
-          if (!user) {
-            // Log failed login - user not found with location
-            await logActivity({
-              userId: null,
-              userName: null,
-              userEmail: credentials.email,
-              userRole: null,
-              action: 'login_failed',
-              category: 'authentication',
-              details: {
-                reason: 'user_not_found',
-                email: credentials.email,
-                location: locationData // NEW: Include location
-              },
-              request: req,
-              locationData: locationData // NEW: Store location data
-            })
-            
-            return null
-          }
-
+          // Verify password
           const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
 
           if (!isPasswordValid) {
-            // Log failed login - invalid password with location
+            // Log failed login - invalid password
             await logActivity({
               userId: user._id.toString(),
               userName: user.fullName,
@@ -94,16 +111,17 @@ export const authOptions = {
               details: {
                 reason: 'invalid_password',
                 email: credentials.email,
-                location: locationData // NEW: Include location
+                deviceType: deviceInfo.deviceType,
+                location: locationData
               },
               request: req,
-              locationData: locationData // NEW: Store location data
+              locationData: locationData
             })
             
             return null
           }
 
-          // Log successful login with location
+          // Log successful login with device and role information
           await logActivity({
             userId: user._id.toString(),
             userName: user.fullName,
@@ -113,11 +131,13 @@ export const authOptions = {
             category: 'authentication',
             details: {
               deviceType: deviceInfo.deviceType,
+              userRole: user.role,
+              isManagementMobileAccess: deviceInfo.isManagementException,
               loginTime: new Date().toISOString(),
-              location: locationData // NEW: Include location
+              location: locationData
             },
             request: req,
-            locationData: locationData // NEW: Store location data
+            locationData: locationData
           })
           
           await User.updateLastLogin(user._id.toString())

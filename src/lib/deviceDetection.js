@@ -1,3 +1,5 @@
+// src/lib/deviceDetection.js - Updated to allow management mobile access
+
 export function isMobileDevice(userAgent) {
   if (!userAgent) return false;
   
@@ -27,20 +29,29 @@ export function getDeviceType(userAgent) {
   return 'desktop';
 }
 
-export function isAllowedDevice(userAgent) {
+// NEW: Updated to include role-based exceptions
+export function isAllowedDevice(userAgent, userRole = null) {
   const deviceType = getDeviceType(userAgent);
   
-  // Allow tablets and desktops, block mobile phones
+  // Management users can access from any device (including mobile)
+  if (userRole === 'management') {
+    console.log('Management user detected - allowing all devices');
+    return true;
+  }
+  
+  // For all other roles: Allow tablets and desktops, block mobile phones
   return deviceType === 'tablet' || deviceType === 'desktop';
 }
 
-// Enhanced device info for logging/debugging
-export function getDeviceInfo(userAgent) {
+// Enhanced device info for logging/debugging - NEW: includes role context
+export function getDeviceInfo(userAgent, userRole = null) {
   const deviceType = getDeviceType(userAgent);
   
   return {
     deviceType,
-    isAllowed: isAllowedDevice(userAgent),
+    isAllowed: isAllowedDevice(userAgent, userRole),
+    userRole: userRole,
+    isManagementException: userRole === 'management' && deviceType === 'mobile',
     userAgent: userAgent,
     timestamp: new Date().toISOString()
   };

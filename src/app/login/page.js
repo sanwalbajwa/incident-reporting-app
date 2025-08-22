@@ -1,4 +1,4 @@
-// src/app/login/page.js - Enhanced with location tracking
+// src/app/login/page.js - Updated error handling for management mobile access
 
 'use client'
 import { useState, useEffect, Suspense } from 'react'
@@ -33,6 +33,7 @@ function LoginForm() {
   })
   const [error, setError] = useState('')
   const [errorType, setErrorType] = useState('')
+  const [errorRole, setErrorRole] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [locationStatus, setLocationStatus] = useState({
@@ -53,10 +54,21 @@ function LoginForm() {
   useEffect(() => {
     const urlError = searchParams.get('error')
     if (urlError) {
-      if (urlError.includes('DEVICE_BLOCKED')) {
-        const deviceType = urlError.split(':')[1] || 'mobile'
-        setError('Access restricted to company tablets only')
-        setErrorType('DEVICE_BLOCKED')
+      if (urlError.includes('DEVICE_BLOCKED:')) {
+        const errorParts = urlError.split(':')
+        const deviceType = errorParts[1] || 'mobile'
+        const userRole = errorParts[2] || 'unknown'
+        
+        setErrorRole(userRole)
+        
+        if (userRole === 'management') {
+          // This shouldn't happen anymore, but just in case
+          setError('Unexpected device restriction for management')
+          setErrorType('MANAGEMENT_DEVICE_ERROR')
+        } else {
+          setError('Access restricted to company tablets and computers')
+          setErrorType('DEVICE_BLOCKED')
+        }
       }
     }
   }, [searchParams])
@@ -113,6 +125,7 @@ function LoginForm() {
     setLoading(true)
     setError('')
     setErrorType('')
+    setErrorRole('')
 
     try {
       // Prepare credentials with location data
@@ -132,14 +145,25 @@ function LoginForm() {
       })
 
       if (result?.error) {
-        // Handle specific error types
+        // Handle specific error types with role information
         if (result.error.includes('CredentialsSignin')) {
           setError('Invalid email or password')
           setErrorType('INVALID_CREDENTIALS')
-        } else if (result.error.includes('DEVICE_BLOCKED')) {
-          const deviceType = result.error.split(':')[1] || 'mobile'
-          setError('Access restricted to company tablets only')
-          setErrorType('DEVICE_BLOCKED')
+        } else if (result.error.includes('DEVICE_BLOCKED:')) {
+          const errorParts = result.error.split(':')
+          const deviceType = errorParts[1] || 'mobile'
+          const userRole = errorParts[2] || 'unknown'
+          
+          setErrorRole(userRole)
+          
+          if (userRole === 'management') {
+            // This shouldn't happen anymore, but handle gracefully
+            setError('Unexpected access restriction. Please contact system administrator.')
+            setErrorType('MANAGEMENT_DEVICE_ERROR')
+          } else {
+            setError('Access restricted to company tablets and computers')
+            setErrorType('DEVICE_BLOCKED')
+          }
         } else {
           setError('Login failed. Please try again.')
           setErrorType('GENERAL_ERROR')
@@ -166,6 +190,7 @@ function LoginForm() {
     if (error) {
       setError('')
       setErrorType('')
+      setErrorRole('')
     }
   }
 
@@ -322,27 +347,41 @@ function LoginForm() {
               <div className={`rounded-xl p-4 border ${
                 errorType === 'DEVICE_BLOCKED' 
                   ? 'bg-red-50 border-red-200' 
+                  : errorType === 'MANAGEMENT_DEVICE_ERROR'
+                  ? 'bg-yellow-50 border-yellow-200'
                   : 'bg-red-50 border-red-200'
               }`}>
                 <div className="flex items-start">
                   <div className="flex-shrink-0">
                     {errorType === 'DEVICE_BLOCKED' ? (
                       <Smartphone className="w-5 h-5 text-red-600 mt-0.5" />
+                    ) : errorType === 'MANAGEMENT_DEVICE_ERROR' ? (
+                      <Crown className="w-5 h-5 text-yellow-600 mt-0.5" />
                     ) : (
                       <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
                     )}
                   </div>
                   <div className="ml-3">
-                    <h3 className="text-red-800 font-medium mb-1">
-                      {errorType === 'DEVICE_BLOCKED' ? 'Device Not Allowed' : 'Login Failed'}
+                    <h3 className={`font-medium mb-1 ${
+                      errorType === 'DEVICE_BLOCKED' ? 'text-red-800' 
+                      : errorType === 'MANAGEMENT_DEVICE_ERROR' ? 'text-yellow-800'
+                      : 'text-red-800'
+                    }`}>
+                      {errorType === 'DEVICE_BLOCKED' ? 'Device Not Allowed' 
+                       : errorType === 'MANAGEMENT_DEVICE_ERROR' ? 'System Error'
+                       : 'Login Failed'}
                     </h3>
-                    <p className="text-red-700 text-sm">{error}</p>
+                    <p className={`text-sm ${
+                      errorType === 'DEVICE_BLOCKED' ? 'text-red-700'
+                      : errorType === 'MANAGEMENT_DEVICE_ERROR' ? 'text-yellow-700'
+                      : 'text-red-700'
+                    }`}>{error}</p>
                     
-                    {errorType === 'DEVICE_BLOCKED' && (
+                    {errorType === 'DEVICE_BLOCKED' && errorRole !== 'management' && (
                       <div className="mt-3 p-3 bg-red-100 rounded-lg border border-red-200">
                         <div className="flex items-center gap-2 text-red-800 text-sm font-medium mb-2">
                           <Tablet className="w-4 h-4" />
-                          Allowed Devices:
+                          Allowed Devices for {errorRole}:
                         </div>
                         <ul className="text-red-700 text-sm space-y-1">
                           <li>• Company tablets</li>
@@ -351,9 +390,17 @@ function LoginForm() {
                         </ul>
                         <div className="mt-2 pt-2 border-t border-red-200">
                           <p className="text-red-600 text-xs">
-                            📱 Personal mobile phones are not permitted for security reasons.
+                            📱 Personal mobile phones are not permitted for security roles.
                           </p>
                         </div>
+                      </div>
+                    )}
+
+                    {errorType === 'MANAGEMENT_DEVICE_ERROR' && (
+                      <div className="mt-3 p-3 bg-yellow-100 rounded-lg border border-yellow-200">
+                        <p className="text-yellow-700 text-sm">
+                          Management users should have unrestricted device access. Please contact IT support.
+                        </p>
                       </div>
                     )}
                   </div>
@@ -380,6 +427,7 @@ function LoginForm() {
               )}
             </button>
           </form>
+          
           {/* Forgot Password Link */}
           <div className="mt-6 text-center">
             <Link 
@@ -389,6 +437,7 @@ function LoginForm() {
               Forgot your password?
             </Link>
           </div>
+          
           {/* Register Link */}
           <div className="mt-8 text-center">
             <p className="text-gray-600">
@@ -403,16 +452,17 @@ function LoginForm() {
           </div>
         </div>
 
-        {/* Company Device Notice */}
+        {/* Company Device Notice - Updated for role-based restrictions */}
         <div className="mt-6 text-center">
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
             <div className="flex items-center justify-center gap-2 text-blue-800 text-sm font-medium mb-2">
-              <Tablet className="w-4 h-4" />
-              Company Device Required
+              <Crown className="w-4 h-4" />
+              Device Access Policy
             </div>
-            <p className="text-blue-700 text-xs">
-              This system is restricted to company tablets and computers only.
-            </p>
+            <div className="text-blue-700 text-xs space-y-1">
+              <p><strong>Management:</strong> All devices allowed</p>
+              <p><strong>Security Roles:</strong> Company tablets & computers only</p>
+            </div>
           </div>
         </div>
       </div>
