@@ -81,12 +81,12 @@ export async function PUT(request, { params }) {
     }
     
     // Check ownership
-    if (existingIncident.guardId.toString() !== session.user.id) {
+    if (session.user.role !== 'management' && existingIncident.guardId.toString() !== session.user.id) {
       return Response.json({ error: 'Access denied' }, { status: 403 })
     }
     
     // Check if incident can be edited
-    if (existingIncident.status !== 'submitted') {
+    if (session.user.role !== 'management' && existingIncident.status !== 'submitted') {
       return Response.json({ 
         error: 'Cannot edit incident that has already been reviewed' 
       }, { status: 400 })
@@ -190,6 +190,42 @@ export async function PUT(request, { params }) {
     
     return Response.json(
       { error: error.message },
+      { status: 500 }
+    )
+  }
+}
+// DELETE incident (management only, no logging)
+export async function DELETE(request, { params }) {
+  try {
+    const resolvedParams = await params
+    const session = await getServerSession(authOptions)
+    
+    if (!session) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    
+    // Only management can delete incidents
+    if (session.user.role !== 'management') {
+      return Response.json({ error: 'Only management can delete incidents' }, { status: 403 })
+    }
+    
+    const incident = await Incident.findById(resolvedParams.id)
+    
+    if (!incident) {
+      return Response.json({ error: 'Incident not found' }, { status: 404 })
+    }
+    
+    // Delete the incident (no logging as requested)
+    await Incident.deleteIncident(resolvedParams.id)
+    
+    return Response.json({
+      message: 'Incident deleted successfully'
+    })
+    
+  } catch (error) {
+    console.error('Delete incident error:', error)
+    return Response.json(
+      { error: 'Failed to delete incident' },
       { status: 500 }
     )
   }

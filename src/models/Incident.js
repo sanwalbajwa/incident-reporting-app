@@ -242,4 +242,11 @@ static async getAllIncidents(page = 1, limit = 1000) { // Increased default limi
     totalPages: Math.ceil(total / limit)
   }
 }
+static async deleteIncident(id) {
+  const client = await clientPromise
+  const db = client.db('incident-reporting-db')
+  const incidents = db.collection('incidents')
+  
+  return await incidents.deleteOne({ _id: new ObjectId(id) })
+}
 }

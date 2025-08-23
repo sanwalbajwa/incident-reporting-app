@@ -153,7 +153,7 @@ export default function EditIncidentPage({ params }) {
       }
       
       // Check if user owns this incident
-      if (incident.guardId !== session.user.id) {
+      if (session.user.role !== 'management' && incident.guardId !== session.user.id) {
         alert('You can only edit your own incidents.')
         router.push('/incidents')
         return
@@ -485,20 +485,23 @@ export default function EditIncidentPage({ params }) {
           </button>
         </div>
 
-        {/* Warning */}
-        <div className="bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200 rounded-2xl p-6">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="flex-shrink-0 h-6 w-6 text-yellow-600 mt-0.5" />
-            <div>
-              <h3 className="text-lg font-bold text-yellow-800 mb-2">
-                Editing {isCommunication ? 'Message' : 'Incident Report'}
-              </h3>
-              <p className="text-yellow-700">
-                You can only edit {isCommunication ? 'messages' : 'incidents'} with "submitted" status. Once reviewed, {isCommunication ? 'messages' : 'incidents'} cannot be modified.
-              </p>
-            </div>
-          </div>
-        </div>
+{/* Warning */}
+<div className="bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200 rounded-2xl p-6">
+  <div className="flex items-start gap-3">
+    <AlertCircle className="flex-shrink-0 h-6 w-6 text-yellow-600 mt-0.5" />
+    <div>
+      <h3 className="text-lg font-bold text-yellow-800 mb-2">
+        Editing {isCommunication ? 'Message' : 'Incident Report'}
+      </h3>
+      <p className="text-yellow-700">
+        {session?.user?.role === 'management' 
+          ? 'As management, you can edit any incident regardless of status or owner.'
+          : 'You can only edit your own incidents with "submitted" status. Once reviewed, incidents cannot be modified.'
+        }
+      </p>
+    </div>
+  </div>
+</div>
 
         <form onSubmit={handleSubmit} className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8 space-y-8">
           

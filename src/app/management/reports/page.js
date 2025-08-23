@@ -23,7 +23,9 @@ import {
   RefreshCw,
   TrendingUp,
   Users,
-  Shield
+  Shield,
+  Edit,
+  Trash2,
 } from 'lucide-react'
 
 export default function ManagementReportsPage() {
@@ -41,7 +43,7 @@ export default function ManagementReportsPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [typeFilter, setTypeFilter] = useState('all')
   const [priorityFilter, setPriorityFilter] = useState('all')
-
+  const [actionLoading, setActionLoading] = useState(null)
   useEffect(() => {
     if (status === 'loading') return
     if (!session) {
@@ -134,7 +136,46 @@ const loadAllIncidents = async () => {
     }
     return <AlertTriangle className="w-5 h-5 text-red-600" />
   }
+  const handleEditIncident = (incidentId) => {
+  router.push(`/incidents/edit/${incidentId}`)
+}
 
+const handleDeleteIncident = async (incidentId, incidentTitle) => {
+  if (!confirm(`⚠️ WARNING: Are you absolutely sure you want to delete this incident?\n\nIncident: ${incidentTitle}\n\nThis action cannot be undone and will permanently remove the incident from the system.\n\nType "DELETE" to confirm.`)) {
+    return
+  }
+
+  const confirmation = prompt(`To confirm deletion of incident ${incidentTitle}, please type "DELETE" (in capital letters):`)
+  if (confirmation !== 'DELETE') {
+    alert('Deletion cancelled. You must type "DELETE" exactly to confirm.')
+    return
+  }
+
+  setActionLoading(incidentId)
+  
+  try {
+    const response = await fetch(`/api/incidents/${incidentId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+    
+    const data = await response.json()
+    
+    if (response.ok) {
+      alert(`✅ Incident "${incidentTitle}" has been successfully deleted.`)
+      loadAllIncidents() // Refresh the list
+    } else {
+      alert(`❌ Error: ${data.error}`)
+    }
+  } catch (error) {
+    alert('❌ Network error occurred')
+    console.error('Delete incident error:', error)
+  }
+  
+  setActionLoading(null)
+}
   // Filter incidents
   const filteredIncidents = incidents.filter(incident => {
     const matchesSearch = incident.incidentId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -374,14 +415,42 @@ const loadAllIncidents = async () => {
                         </td>
                         
                         <td className="px-6 py-4">
-                          <button
-                            onClick={() => router.push(`/incidents/${incident._id}`)}
-                            className="bg-orange-100 hover:bg-orange-200 text-orange-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
-                          >
-                            <Eye className="w-4 h-4" />
-                            View Details
-                          </button>
-                        </td>
+  <div className="flex items-center gap-2">
+    <button
+      onClick={() => router.push(`/incidents/${incident._id}`)}
+      className="bg-orange-100 hover:bg-orange-200 text-orange-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+    >
+      <Eye className="w-4 h-4" />
+      View
+    </button>
+    
+    <button
+      onClick={() => handleEditIncident(incident._id)}
+      disabled={actionLoading === incident._id}
+      className="bg-blue-100 hover:bg-blue-200 disabled:bg-blue-50 text-blue-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+    >
+      {actionLoading === incident._id ? (
+        <RefreshCw className="w-4 h-4 animate-spin" />
+      ) : (
+        <Edit className="w-4 h-4" />
+      )}
+      Edit
+    </button>
+    
+    <button
+      onClick={() => handleDeleteIncident(incident._id, incident.incidentId)}
+      disabled={actionLoading === incident._id}
+      className="bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+    >
+      {actionLoading === incident._id ? (
+        <RefreshCw className="w-4 h-4 animate-spin" />
+      ) : (
+        <Trash2 className="w-4 h-4" />
+      )}
+      Delete
+    </button>
+  </div>
+</td>
                       </tr>
                     ))}
                   </tbody>
@@ -429,14 +498,40 @@ const loadAllIncidents = async () => {
                         {formatDate(incident.createdAt)}
                       </div>
                     </div>
-                    
-                    <button
-                      onClick={() => router.push(`/incidents/${incident._id}`)}
-                      className="w-full bg-orange-100 hover:bg-orange-200 text-orange-700 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1"
-                    >
-                      <Eye className="w-4 h-4" />
-                      View Full Report
-                    </button>
+<div className="flex gap-2">
+  <button
+    onClick={() => router.push(`/incidents/${incident._id}`)}
+    className="flex-1 bg-orange-100 hover:bg-orange-200 text-orange-700 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1"
+  >
+    <Eye className="w-4 h-4" />
+    View
+  </button>
+  
+  <button
+    onClick={() => handleEditIncident(incident._id)}
+    disabled={actionLoading === incident._id}
+    className="flex-1 bg-blue-100 hover:bg-blue-200 disabled:bg-blue-50 text-blue-700 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1"
+  >
+    {actionLoading === incident._id ? (
+      <RefreshCw className="w-4 h-4 animate-spin" />
+    ) : (
+      <Edit className="w-4 h-4" />
+    )}
+    Edit
+  </button>
+  
+  <button
+    onClick={() => handleDeleteIncident(incident._id, incident.incidentId)}
+    disabled={actionLoading === incident._id}
+    className="bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+  >
+    {actionLoading === incident._id ? (
+      <RefreshCw className="w-4 h-4 animate-spin" />
+    ) : (
+      <Trash2 className="w-4 h-4" />
+    )}
+  </button>
+</div>
                   </div>
                 ))}
               </div>
