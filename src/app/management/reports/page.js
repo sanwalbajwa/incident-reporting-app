@@ -58,31 +58,32 @@ export default function ManagementReportsPage() {
     loadAllIncidents()
   }, [session, status, router])
 
-  const loadAllIncidents = async () => {
-    setLoading(true)
-    try {
-      const response = await fetch('/api/incidents/list?guardOnly=false&limit=50')
-      const data = await response.json()
+const loadAllIncidents = async () => {
+  setLoading(true)
+  try {
+    // Remove the limit to get ALL incidents
+    const response = await fetch('/api/incidents/list?guardOnly=false')
+    const data = await response.json()
+    
+    if (response.ok) {
+      setIncidents(data.incidents || [])
       
-      if (response.ok) {
-        setIncidents(data.incidents || [])
-        
-        // Calculate stats
-        const incidents = data.incidents || []
-        setStats({
-          total: incidents.length,
-          submitted: incidents.filter(i => i.status === 'submitted').length,
-          reviewed: incidents.filter(i => i.status === 'reviewed').length,
-          resolved: incidents.filter(i => i.status === 'resolved').length
-        })
-      } else {
-        console.error('Error loading incidents:', data.error)
-      }
-    } catch (error) {
-      console.error('Error loading incidents:', error)
+      // Calculate stats
+      const incidents = data.incidents || []
+      setStats({
+        total: incidents.length,
+        submitted: incidents.filter(i => i.status === 'submitted').length,
+        reviewed: incidents.filter(i => i.status === 'reviewed').length,
+        resolved: incidents.filter(i => i.status === 'resolved').length
+      })
+    } else {
+      console.error('Error loading incidents:', data.error)
     }
-    setLoading(false)
+  } catch (error) {
+    console.error('Error loading incidents:', error)
   }
+  setLoading(false)
+}
 
   const formatDate = (date) => {
     return new Date(date).toLocaleString()

@@ -12,11 +12,10 @@ export async function GET(request) {
     }
     
     console.log('Session user:', session.user)
-    console.log('Fetching incidents for guard ID:', session.user.id)
     
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '10')
+    const limit = parseInt(searchParams.get('limit') || '1000') // Increased default limit
     const guardOnly = searchParams.get('guardOnly') === 'true'
     
     let incidents
@@ -32,7 +31,7 @@ export async function GET(request) {
         totalPages: 1
       }
     } else {
-      // Get all incidents (for admin view later)
+      // For management - get ALL incidents without pagination limit
       incidents = await Incident.getAllIncidents(page, limit)
     }
     

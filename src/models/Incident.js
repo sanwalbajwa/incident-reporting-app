@@ -218,27 +218,28 @@ export class Incident {
     return result
   }
   
-  static async getAllIncidents(page = 1, limit = 20) {
-    const client = await clientPromise
-    const db = client.db('incident-reporting-db')
-    const incidents = db.collection('incidents')
+static async getAllIncidents(page = 1, limit = 1000) { // Increased default limit
+  const client = await clientPromise
+  const db = client.db('incident-reporting-db')
+  const incidents = db.collection('incidents')
+  
+  const skip = (page - 1) * limit
+  
+  // For very large datasets, you might want to remove pagination entirely for management
+  const incidents_list = await incidents
+    .find({})
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .toArray()
     
-    const skip = (page - 1) * limit
-    
-    const incidents_list = await incidents
-      .find({})
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .toArray()
-      
-    const total = await incidents.countDocuments()
-    
-    return {
-      incidents: incidents_list,
-      total,
-      page,
-      totalPages: Math.ceil(total / limit)
-    }
+  const total = await incidents.countDocuments()
+  
+  return {
+    incidents: incidents_list,
+    total,
+    page,
+    totalPages: Math.ceil(total / limit)
   }
+}
 }
