@@ -94,7 +94,9 @@ export default function EditIncidentPage({ params }) {
     policeReportNumber: '',
     officerName: '',
     officerBadge: '',
-    attachments: []
+    attachments: [],
+    witnessData: 'na',
+    witnesses: []
   })
 
   // Redirect if not logged in
@@ -194,7 +196,9 @@ export default function EditIncidentPage({ params }) {
         officerName: incident.officerName || '',
         officerBadge: incident.officerBadge || '',
         
-        attachments: incident.attachments || []
+        attachments: incident.attachments || [],
+        witnessData: incident.witnessData || 'na',
+        witnesses: incident.witnesses || []
       })
       
       console.log('Form data set with police fields:', {
@@ -428,6 +432,9 @@ export default function EditIncidentPage({ params }) {
     if (session?.user?.role === 'security_supervisor') {
       return '/supervisor-dashboard'
     }
+    else if (session?.user?.role === 'management') {
+      return '/management/reports'
+    }
     return '/incidents'
   }
 
@@ -435,8 +442,12 @@ export default function EditIncidentPage({ params }) {
     if (session?.user?.role === 'security_supervisor') {
       return 'Supervisor Dashboard'
     }
+    else if (session?.user?.role === 'management') {
+      return 'All Reports'
+    }
     return 'My Reports'
   }
+  
 
   // Check if this is a communication
   const isCommunication = formData.incidentType === 'Communication/Message'

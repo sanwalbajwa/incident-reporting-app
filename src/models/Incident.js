@@ -27,41 +27,44 @@ export class Incident {
       processedPoliceReportFiled: policeReportFiled
     })
     
-    const newIncident = {
-      incidentId,
-      guardId: incidentData.guardId,
-      guardName: incidentData.guardName,
-      guardEmail: incidentData.guardEmail,
-      clientId: incidentData.clientId,
-      incidentType: incidentData.incidentType,
-      priority: incidentData.priority || 'normal',
-      incidentDate: incidentData.incidentDate,
-      incidentTime: incidentData.incidentTime,
-      incidentDateTime: incidentData.incidentDateTime,
-      withinProperty: incidentData.withinProperty,
-      location: incidentData.location,
-      incidentOriginatedBy: incidentData.incidentOriginatedBy,
-      description: incidentData.description,
-    
-      // FIXED: Properly handle police fields with validation and proper types
-      policeInvolved: policeInvolved,
-      policeReportFiled: policeReportFiled,
-      // Only save police details if police were actually involved
-      policeReportNumber: (policeInvolved && policeReportFiled) ? (incidentData.policeReportNumber || '') : '',
-      officerName: policeInvolved ? (incidentData.officerName || '') : '',
-      officerBadge: policeInvolved ? (incidentData.officerBadge || '') : '',
-      
-      attachments: incidentData.attachments || [],
-      recipientId: incidentData.recipientId,
-      recipientName: incidentData.recipientName,
-      recipientEmail: incidentData.recipientEmail,
-      recipientRole: incidentData.recipientRole,
-      recipientInfo: incidentData.recipientInfo,
-      messageType: incidentData.messageType || 'incident',
-      status: 'submitted',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }
+const newIncident = {
+  incidentId,
+  guardId: incidentData.guardId,
+  guardName: incidentData.guardName,
+  guardEmail: incidentData.guardEmail,
+  clientId: incidentData.clientId,
+  incidentType: incidentData.incidentType,
+  priority: incidentData.priority || 'normal',
+  incidentDate: incidentData.incidentDate,
+  incidentTime: incidentData.incidentTime,
+  incidentDateTime: incidentData.incidentDateTime,
+  withinProperty: incidentData.withinProperty,
+  location: incidentData.location,
+  incidentOriginatedBy: incidentData.incidentOriginatedBy,
+  description: incidentData.description,
+
+  // Police fields
+  policeInvolved: policeInvolved,
+  policeReportFiled: policeReportFiled,
+  policeReportNumber: (policeInvolved && policeReportFiled) ? (incidentData.policeReportNumber || '') : '',
+  officerName: policeInvolved ? (incidentData.officerName || '') : '',
+  officerBadge: policeInvolved ? (incidentData.officerBadge || '') : '',
+  
+  // NEW: Witness fields
+  witnessData: incidentData.witnessData || 'na',
+  witnesses: incidentData.witnesses || [],
+  
+  attachments: incidentData.attachments || [],
+  recipientId: incidentData.recipientId,
+  recipientName: incidentData.recipientName,
+  recipientEmail: incidentData.recipientEmail,
+  recipientRole: incidentData.recipientRole,
+  recipientInfo: incidentData.recipientInfo,
+  messageType: incidentData.messageType || 'incident',
+  status: 'submitted',
+  createdAt: new Date(),
+  updatedAt: new Date()
+}
     
     console.log('Final incident object police fields before DB insert:', {
       policeInvolved: newIncident.policeInvolved,

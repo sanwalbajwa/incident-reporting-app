@@ -585,7 +585,98 @@ const getBackLabel = () => {
             </div>
           </div>
         )}
+        {/* Witness Information Section */}
+{(incident.witnessData && incident.witnessData !== 'na') && (
+  <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6">
+    <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+      <Users className="w-7 h-7 text-blue-600" />
+      Witness Information
+    </h2>
+    
+    <div className="space-y-6">
+      {/* Witness Status */}
+      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200">
+        <span className="font-medium text-gray-700">Witness Status:</span>
+        <span className={`inline-flex items-center gap-2 px-3 py-1 text-sm font-bold rounded-full border ${
+          incident.witnessData === 'witnesses' 
+            ? 'bg-blue-100 text-blue-800 border-blue-200' 
+            : incident.witnessData === 'none'
+            ? 'bg-gray-100 text-gray-800 border-gray-200'
+            : 'bg-yellow-100 text-yellow-800 border-yellow-200'
+        }`}>
+          <Users className="w-4 h-4" />
+          {incident.witnessData === 'witnesses' ? 'Witnesses Present' : 
+           incident.witnessData === 'none' ? 'No Witnesses' : 'Not Applicable'}
+        </span>
+      </div>
 
+      {/* Witness Details */}
+      {incident.witnessData === 'witnesses' && incident.witnesses && incident.witnesses.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="text-lg font-bold text-blue-900 mb-4">
+            Witness Details ({incident.witnesses.length} witness{incident.witnesses.length !== 1 ? 'es' : ''})
+          </h3>
+          
+          {incident.witnesses.map((witness, index) => (
+            <div key={index} className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+              <h4 className="font-bold text-blue-900 mb-4">Witness #{index + 1}</h4>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                {witness.name && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-blue-800">
+                      <User className="w-4 h-4" />
+                      <span className="font-medium">Name</span>
+                    </div>
+                    <div className="text-lg font-bold text-blue-900 bg-white p-3 rounded-lg border border-blue-200">
+                      {witness.name}
+                    </div>
+                  </div>
+                )}
+
+                {witness.contact && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-blue-800">
+                      <Phone className="w-4 h-4" />
+                      <span className="font-medium">Contact</span>
+                    </div>
+                    <div className="text-lg font-bold text-blue-900 bg-white p-3 rounded-lg border border-blue-200">
+                      {witness.contact}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {witness.statement && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-blue-800">
+                    <FileText className="w-4 h-4" />
+                    <span className="font-medium">Statement</span>
+                  </div>
+                  <div className="bg-white p-4 rounded-lg border border-blue-200">
+                    <p className="text-gray-900 whitespace-pre-wrap leading-relaxed">
+                      {witness.statement}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* No Witnesses Message */}
+      {incident.witnessData === 'none' && (
+        <div className="text-center py-6">
+          <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+            <Users className="w-8 h-8 text-gray-400" />
+          </div>
+          <p className="text-gray-500 font-medium">No witnesses were present at the scene</p>
+        </div>
+      )}
+    </div>
+  </div>
+)}
         {/* Attachments */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
