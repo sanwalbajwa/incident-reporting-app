@@ -23,6 +23,7 @@ import {
   Image,
   Download,
   X,
+  Users,
 } from 'lucide-react'
 
 export default function ViewIncidentPage({ params }) {
