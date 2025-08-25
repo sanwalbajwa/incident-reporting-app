@@ -622,7 +622,7 @@ const getBackLabel = () => {
           </div>
         )}
         {/* Witness Information Section */}
-{(incident.witnessData && incident.witnessData !== 'na') && (
+{(incident.witnessData || incident.witnesses) && (
   <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6">
     <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
       <Users className="w-7 h-7 text-blue-600" />
@@ -708,6 +708,18 @@ const getBackLabel = () => {
             <Users className="w-8 h-8 text-gray-400" />
           </div>
           <p className="text-gray-500 font-medium">No witnesses were present at the scene</p>
+        </div>
+      )}
+
+      {/* N/A Message */}
+      {incident.witnessData === 'na' && (
+        <div className="text-center py-6">
+          <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+            <div className="w-8 h-8 bg-gray-200 rounded-xl flex items-center justify-center">
+              <X className="w-5 h-5 text-gray-400" />
+            </div>
+          </div>
+          <p className="text-gray-500 font-medium">Witness information not applicable for this incident</p>
         </div>
       )}
     </div>

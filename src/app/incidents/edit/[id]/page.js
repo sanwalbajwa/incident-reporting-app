@@ -25,7 +25,8 @@ import {
   Users,
   Shield,
   Crown,
-  UserCheck
+  UserCheck,
+  Plus
 } from 'lucide-react'
 
 // Simplified incident types as per document
@@ -1060,6 +1061,184 @@ const loadIncident = async () => {
               </>
             )}
           </div>
+          
+          {/* Witness Information Section */}
+<div className="space-y-6 border-t border-gray-200 pt-8">
+  <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+    <Users className="w-5 h-5 text-blue-600" />
+    Witness Information
+  </h3>
+  
+  {/* Witness Data Selection */}
+  <div className="space-y-3">
+    <label className="block text-lg font-semibold text-gray-900">
+      Were there any witnesses to this incident?
+    </label>
+    <div className="space-y-2">
+      <label className="flex items-center p-3 bg-gray-50 rounded-xl border cursor-pointer hover:bg-gray-100 transition-colors">
+        <input
+          type="radio"
+          name="witnessData"
+          checked={formData.witnessData === 'na'}
+          onChange={() => setFormData(prev => ({...prev, witnessData: 'na', witnesses: []}))}
+          className="mr-3 w-4 h-4 text-gray-600"
+        />
+        <span className="font-medium text-gray-800">N/A - Not applicable</span>
+      </label>
+      
+      <label className="flex items-center p-3 bg-gray-50 rounded-xl border cursor-pointer hover:bg-gray-100 transition-colors">
+        <input
+          type="radio"
+          name="witnessData"
+          checked={formData.witnessData === 'none'}
+          onChange={() => setFormData(prev => ({...prev, witnessData: 'none', witnesses: []}))}
+          className="mr-3 w-4 h-4 text-gray-600"
+        />
+        <span className="font-medium text-gray-800">No witnesses present</span>
+      </label>
+      
+      <label className="flex items-center p-3 bg-blue-50 rounded-xl border border-blue-200 cursor-pointer hover:bg-blue-100 transition-colors">
+        <input
+          type="radio"
+          name="witnessData"
+          checked={formData.witnessData === 'witnesses'}
+          onChange={() => setFormData(prev => ({...prev, witnessData: 'witnesses'}))}
+          className="mr-3 w-4 h-4 text-blue-600"
+        />
+        <span className="font-medium text-blue-800">Yes, there were witnesses</span>
+      </label>
+    </div>
+  </div>
+
+  {/* Witness Details - Show only if witnesses selected */}
+  {formData.witnessData === 'witnesses' && (
+    <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 space-y-4">
+      <div className="flex items-center justify-between">
+        <h4 className="font-bold text-blue-900 mb-4">Witness Details</h4>
+        <button
+          type="button"
+          onClick={() => setFormData(prev => ({
+            ...prev, 
+            witnesses: [...prev.witnesses, { name: '', contact: '', statement: '' }]
+          }))}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+        >
+          <Plus className="w-4 h-4" />
+          Add Additional Witness
+        </button>
+      </div>
+      
+      {formData.witnesses.length === 0 && (
+        <div className="text-center py-6">
+          <Users className="w-12 h-12 text-blue-400 mx-auto mb-3" />
+          <p className="text-blue-700 font-medium mb-3">No witnesses added yet</p>
+          <button
+            type="button"
+            onClick={() => setFormData(prev => ({
+              ...prev, 
+              witnesses: [...prev.witnesses, { name: '', contact: '', statement: '' }]
+            }))}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+          >
+            Add First Witness
+          </button>
+        </div>
+      )}
+      
+      {formData.witnesses.map((witness, index) => (
+        <div key={index} className="bg-white rounded-lg p-4 border border-blue-200">
+          <div className="flex items-center justify-between mb-3">
+            <h5 className="font-semibold text-blue-900">Witness #{index + 1}</h5>
+            <button
+              type="button"
+              onClick={() => setFormData(prev => ({
+                ...prev,
+                witnesses: prev.witnesses.filter((_, i) => i !== index)
+              }))}
+              className="text-red-600 hover:text-red-700 transition-colors p-1"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-semibold text-blue-800 mb-1">
+                Witness Name
+              </label>
+              <input
+                type="text"
+                value={witness.name}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  witnesses: prev.witnesses.map((w, i) => 
+                    i === index ? { ...w, name: e.target.value } : w
+                  )
+                }))}
+                placeholder="Full name of witness"
+                className="w-full px-3 py-2 text-black border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-semibold text-blue-800 mb-1">
+                Contact Information
+              </label>
+              <input
+                type="text"
+                value={witness.contact}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  witnesses: prev.witnesses.map((w, i) => 
+                    i === index ? { ...w, contact: e.target.value } : w
+                  )
+                }))}
+                placeholder="Phone number or email"
+                className="w-full px-3 py-2 text-black border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-semibold text-blue-800 mb-1">
+              Witness Statement
+            </label>
+            <textarea
+              value={witness.statement}
+              onChange={(e) => setFormData(prev => ({
+                ...prev,
+                witnesses: prev.witnesses.map((w, i) => 
+                  i === index ? { ...w, statement: e.target.value } : w
+                )
+              }))}
+              placeholder="What did this witness observe? Include their account of the incident..."
+              rows="3"
+              className="w-full px-3 py-2 text-black border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
+  
+  {/* No Witnesses Message */}
+  {formData.witnessData === 'none' && (
+    <div className="text-center py-6 bg-gray-50 rounded-xl">
+      <Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+      <p className="text-gray-600 font-medium">No witnesses were present at the scene</p>
+    </div>
+  )}
+  
+  {/* N/A Message */}
+  {formData.witnessData === 'na' && (
+    <div className="text-center py-6 bg-gray-50 rounded-xl">
+      <div className="w-12 h-12 bg-gray-200 rounded-xl flex items-center justify-center mx-auto mb-3">
+        <X className="w-6 h-6 text-gray-400" />
+      </div>
+      <p className="text-gray-600 font-medium">Witness information not applicable for this incident</p>
+    </div>
+  )}
+</div>
 
           {/* Existing Attachments */}
           {originalIncident.attachments && originalIncident.attachments.length > 0 && (
