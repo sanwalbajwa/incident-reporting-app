@@ -25,6 +25,7 @@ import {
   X,
   Users,
   AlertCircle,
+  Navigation,
 } from 'lucide-react'
 
 export default function ViewIncidentPage({ params }) {
