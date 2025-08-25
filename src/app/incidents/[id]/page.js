@@ -92,38 +92,55 @@ export default function ViewIncidentPage({ params }) {
     }
   }
 
-  const loadRecipient = async (recipientId) => {
-    try {
+const loadRecipient = async (recipientId) => {
+  try {
+    // FIXED: Handle both ObjectId string and role-based recipients
+    if (!recipientId) {
+      console.log('No recipient ID provided')
+      return
+    }
+
+    // Check if it's a valid ObjectId format (24 character hex string)
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(recipientId)
+    
+    if (isObjectId) {
       // Try to get recipient by ID first
       const response = await fetch(`/api/recipients/${recipientId}`)
       
       if (response.ok) {
         const data = await response.json()
         setRecipient(data.recipient)
+        return
       } else {
-        // Fallback: if recipientId is a role string, format it nicely
-        if (typeof recipientId === 'string') {
-          setRecipient({
-            name: formatRole(recipientId),
-            role: formatRole(recipientId),
-            email: null,
-            isRoleFallback: true
-          })
-        }
-      }
-    } catch (error) {
-      console.error('Error loading recipient:', error)
-      // Fallback for role-based recipients
-      if (typeof recipientId === 'string') {
-        setRecipient({
-          name: formatRole(recipientId),
-          role: formatRole(recipientId),
-          email: null,
-          isRoleFallback: true
-        })
+        console.log('Recipient API call failed, trying fallback...')
       }
     }
+    
+    // FIXED: Fallback - if recipientId is a role string or API fails, format it nicely
+    if (typeof recipientId === 'string') {
+      setRecipient({
+        name: formatRole(recipientId),
+        role: formatRole(recipientId),
+        email: null,
+        isRoleFallback: true
+      })
+    } else {
+      console.log('Unable to determine recipient information')
+    }
+  } catch (error) {
+    console.error('Error loading recipient:', error)
+    
+    // Final fallback for role-based recipients
+    if (typeof recipientId === 'string') {
+      setRecipient({
+        name: formatRole(recipientId),
+        role: formatRole(recipientId),
+        email: null,
+        isRoleFallback: true
+      })
+    }
   }
+}
 
   // Helper function to format role names
   const formatRole = (role) => {
@@ -290,7 +307,7 @@ const getBackLabel = () => {
         </div>
 
         {/* Recipient Information */}
-        {recipient && (
+{(recipient || incident.recipientId || incident.recipientName) && (
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
               <Send className="w-6 h-6 text-purple-600" />
@@ -302,16 +319,34 @@ const getBackLabel = () => {
                   <User className="w-6 h-6 text-purple-700" />
                 </div>
                 <div>
-                  <p className="font-bold text-purple-900">{recipient.name}</p>
-                  <p className="text-sm text-purple-700">{recipient.role}</p>
-                  {recipient.email && !recipient.isRoleFallback && (
+                  {/* FIXED: Display recipient information with fallbacks */}
+                  <p className="font-bold text-purple-900">
+                    {recipient?.name || incident.recipientName || 'Unknown Recipient'}
+                  </p>
+                  <p className="text-sm text-purple-700">
+                    {recipient?.role || incident.recipientRole || 'Unknown Role'}
+                  </p>
+                  {(recipient?.email || incident.recipientEmail) && !recipient?.isRoleFallback && (
                     <p className="text-sm text-purple-600 flex items-center gap-1 mt-1">
                       <Mail className="w-3 h-3" />
-                      {recipient.email}
+                      {recipient?.email || incident.recipientEmail}
                     </p>
                   )}
-                  {recipient.isRoleFallback && (
+                  {recipient?.isRoleFallback && (
                     <p className="text-xs text-purple-500 italic">Role-based recipient</p>
+                  )}
+                  
+                  {/* FIXED: Show recipient info details if available */}
+                  {incident.recipientInfo && (
+                    <div className="mt-2 text-xs text-purple-600">
+                      <p>Type: {incident.recipientInfo.type}</p>
+                      {incident.recipientInfo.totalRecipients && (
+                        <p>Total Recipients: {incident.recipientInfo.totalRecipients}</p>
+                      )}
+                      {incident.recipientInfo.groups && incident.recipientInfo.groups.length > 0 && (
+                        <p>Groups: {incident.recipientInfo.groups.join(', ')}</p>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>

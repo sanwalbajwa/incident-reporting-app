@@ -136,7 +136,7 @@ export default function EditIncidentPage({ params }) {
     }
   }
 
-  const loadIncident = async () => {
+const loadIncident = async () => {
   try {
     // Await params for Next.js 15
     const resolvedParams = await params
@@ -161,9 +161,17 @@ export default function EditIncidentPage({ params }) {
         return
       }
       
-      // Determine recipient selection mode based on incident data
+      // FIXED: Better recipient selection mode detection
       const hasRecipientInfo = incident.recipientInfo && incident.recipientInfo.type
       const useGroupSelection = hasRecipientInfo && incident.recipientInfo.type === 'group'
+      
+      console.log('Loading incident with recipient info:', {
+        hasRecipientInfo,
+        recipientType: incident.recipientInfo?.type,
+        useGroupSelection,
+        recipientId: incident.recipientId,
+        recipientName: incident.recipientName
+      })
       
       console.log('Loading incident with police data:', {
         policeInvolved: incident.policeInvolved,
@@ -173,10 +181,35 @@ export default function EditIncidentPage({ params }) {
         officerBadge: incident.officerBadge
       })
       
+      // FIXED: Properly load recipient selection based on stored data
+      let recipientIds = []
+      let recipientGroups = []
+      
+      if (useGroupSelection) {
+        // Group-based selection
+        recipientGroups = incident.recipientInfo.groups || []
+      } else {
+        // Individual selection - handle both single and multiple recipients
+        if (incident.recipientId) {
+          // Convert single recipient ID to array
+          recipientIds = [incident.recipientId]
+        }
+        // If there are individual IDs in recipientInfo, use those instead
+        if (hasRecipientInfo && incident.recipientInfo.individuals && incident.recipientInfo.individuals.length > 0) {
+          recipientIds = incident.recipientInfo.individuals
+        }
+      }
+      
+      console.log('Setting form recipient data:', {
+        useGroupSelection,
+        recipientIds,
+        recipientGroups
+      })
+      
       // FIXED: Properly load police fields with explicit boolean conversion
       setFormData({
-        recipientIds: useGroupSelection ? [] : (incident.recipientId ? [incident.recipientId] : []),
-        recipientGroups: hasRecipientInfo ? (incident.recipientInfo.groups || []) : [],
+        recipientIds: recipientIds,
+        recipientGroups: recipientGroups,
         useGroupSelection: useGroupSelection,
         clientId: incident.clientId || '',
         incidentType: incident.incidentType || '',
@@ -201,12 +234,13 @@ export default function EditIncidentPage({ params }) {
         witnesses: incident.witnesses || []
       })
       
-      console.log('Form data set with police fields:', {
+      console.log('Form data set with police and recipient fields:', {
         policeInvolved: incident.policeInvolved === true || incident.policeInvolved === 'true',
         policeReportFiled: incident.policeReportFiled === true || incident.policeReportFiled === 'true',
         policeReportNumber: incident.policeReportNumber || '',
-        officerName: incident.officerName || '',
-        officerBadge: incident.officerBadge || ''
+        recipientIds: recipientIds,
+        recipientGroups: recipientGroups,
+        useGroupSelection: useGroupSelection
       })
     } else {
       alert('Incident not found')
