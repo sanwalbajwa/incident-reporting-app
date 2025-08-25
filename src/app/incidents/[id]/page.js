@@ -24,6 +24,7 @@ import {
   Download,
   X,
   Users,
+  AlertCircle,
 } from 'lucide-react'
 
 export default function ViewIncidentPage({ params }) {
