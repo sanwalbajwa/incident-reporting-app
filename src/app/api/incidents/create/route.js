@@ -159,7 +159,9 @@ export async function POST(request) {
       location: incidentData.location,
       incidentOriginatedBy: incidentData.incidentOriginatedBy,
       description: incidentData.description,
-      
+      guardLocationGPS: incidentData.guardLocationGPS,
+      guardLocationManual: incidentData.guardLocationManual,
+
       // Police fields
       policeInvolved: policeInvolved,
       policeReportFiled: policeReportFiled,
