@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useShiftStatus } from '@/hooks/useShiftStatus'
+import { LocationService } from '@/lib/locationService'
 import ShiftGuard from '@/components/ShiftGuard'
 import { 
   ArrowLeft, 
@@ -26,6 +27,8 @@ import {
   UserCheck,
   Plus,
   Trash2,
+  Navigation,
+  RefreshCw,
   Minus
 } from 'lucide-react'
 
@@ -88,6 +91,8 @@ export default function NewIncidentPage() {
     locationWithinProperty: true,
     locationDescription: '',
     description: '',
+    guardLocationGPS: '',
+    guardLocationManual: false,
     incidentOriginatedBy: 'Property',
     policeInvolved: false,
     policeReportFiled: false,
@@ -217,6 +222,8 @@ const handleSubmit = async (e) => {
       withinProperty: formData.locationWithinProperty,
       location: formData.locationDescription,
       description: formData.description,
+      guardLocationGPS: formData.guardLocationGPS,
+      guardLocationManual: formData.guardLocationManual,
       incidentOriginatedBy: formData.incidentOriginatedBy,
       messageType: isCommunication ? 'communication' : 'incident',
       
@@ -409,6 +416,30 @@ const handleWitnessDataChange = (value) => {
       loadRecipients()
     }
   }, [session])
+
+  useEffect(() => {
+    loadGuardLocation()
+  }, [])
+
+  const loadGuardLocation = async () => {
+    try {
+      const location = await LocationService.getCurrentLocation()
+      console.log('Guard location loaded:', location)
+      
+      if (location && !location.error) {
+        const locationDisplay = LocationService.formatLocationForDisplay(location)
+        setFormData(prev => ({
+          ...prev,
+          guardLocationGPS: locationDisplay
+        }))
+      } else {
+        console.log('GPS location unavailable, allowing manual entry')
+      }
+    } catch (error) {
+      console.error('Location error:', error)
+    }
+  }
+
 
   // Show loading while checking shift status
   if (status === 'loading' || shiftLoading) {
@@ -835,6 +866,59 @@ const handleWitnessDataChange = (value) => {
               className="w-full px-4 py-3 text-black border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
             />
           </div>
+
+          {/* Guard's Location with GPS - ADD THIS BEFORE Police Information */}
+<div className="space-y-4 border-t border-gray-200 pt-8">
+  <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+    <MapPin className="w-5 h-5 text-blue-600" />
+    Guard's Location
+  </h3>
+  
+  <div className="space-y-4">
+    {/* GPS Location Display */}
+    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+      <div className="flex items-center justify-between mb-3">
+        <label className="block text-sm font-semibold text-blue-800 flex items-center gap-2">
+          <Navigation className="w-4 h-4" />
+          Current GPS Location
+        </label>
+        <button
+          type="button"
+          onClick={loadGuardLocation}
+          className="text-blue-600 hover:text-blue-700 transition-colors"
+          title="Refresh GPS location"
+        >
+          <RefreshCw className="w-4 h-4" />
+        </button>
+      </div>
+      
+      <input
+        type="text"
+        value={formData.guardLocationGPS}
+        onChange={(e) => setFormData(prev => ({...prev, guardLocationGPS: e.target.value}))}
+        placeholder="GPS location will auto-populate here, or enter manually"
+        className="w-full px-4 py-3 text-black border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+      />
+      
+      <div className="flex items-center gap-2 mt-2">
+        <input
+          type="checkbox"
+          id="guardLocationManual"
+          checked={formData.guardLocationManual}
+          onChange={(e) => setFormData(prev => ({...prev, guardLocationManual: e.target.checked}))}
+          className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+        />
+        <label htmlFor="guardLocationManual" className="text-xs text-blue-700">
+          Location entered manually (GPS unavailable)
+        </label>
+      </div>
+      
+      <p className="text-xs text-blue-600 mt-2">
+        📍 This captures your current location as the reporting guard for verification purposes.
+      </p>
+    </div>
+  </div>
+</div>
           
           {/* Police Information Section */}
 <div className="space-y-6 border-t border-gray-200 pt-8">

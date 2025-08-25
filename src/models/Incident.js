@@ -55,7 +55,8 @@ export class Incident {
       location: incidentData.location,
       incidentOriginatedBy: incidentData.incidentOriginatedBy,
       description: incidentData.description,
-
+      guardLocationGPS: incidentData.guardLocationGPS || '',
+      guardLocationManual: Boolean(incidentData.guardLocationManual),
       // Police fields
       policeInvolved: policeInvolved,
       policeReportFiled: policeReportFiled,
@@ -194,6 +195,14 @@ export class Incident {
     if (updateData.policeReportFiled === false) {
       updateData.policeReportNumber = ''
     }
+
+    if (updateData.guardLocationGPS !== undefined) {
+      // Keep the guardLocationGPS field as is
+    }
+
+    if (updateData.guardLocationManual !== undefined) {
+      updateData.guardLocationManual = Boolean(updateData.guardLocationManual)
+    }
     
     // FIXED: Properly handle witness fields in updates with validation
     if (updateData.witnessData !== undefined) {
@@ -214,12 +223,6 @@ export class Incident {
       
       updateData.witnessData = witnessData
       updateData.witnesses = witnesses
-      
-      console.log('Incident.updateIncident - Witness fields in update:', {
-        witnessData: updateData.witnessData,
-        witnesses: updateData.witnesses,
-        witnessCount: updateData.witnesses.length
-      })
     }
     
     const result = await incidents.updateOne(

@@ -496,7 +496,37 @@ const getBackLabel = () => {
             <p className="text-gray-900 whitespace-pre-wrap leading-relaxed">{incident.description}</p>
           </div>
         </div>
-
+        {/* Guard's Location Information */}
+{(incident.guardLocationGPS || incident.guardLocationManual) && (
+  <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6">
+    <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+      <MapPin className="w-7 h-7 text-blue-600" />
+      Guard's Location
+    </h2>
+    
+    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <Navigation className="w-5 h-5 text-blue-600" />
+        <span className="font-semibold text-blue-900">Guard's Position When Reporting</span>
+      </div>
+      
+      <div className="text-gray-900 bg-white p-3 rounded-lg border border-blue-200">
+        {incident.guardLocationGPS || 'Location not available'}
+      </div>
+      
+      {incident.guardLocationManual && (
+        <div className="flex items-center gap-2 mt-2 text-amber-600 text-sm">
+          <AlertCircle className="w-4 h-4" />
+          <span>Location entered manually (GPS was unavailable)</span>
+        </div>
+      )}
+      
+      <div className="text-xs text-blue-600 mt-2">
+        📍 This location was captured when the guard submitted this report.
+      </div>
+    </div>
+  </div>
+)}  
         {/* Police Information Section */}
         {(incident.policeInvolved === true || 
           incident.policeInvolved === false || 
