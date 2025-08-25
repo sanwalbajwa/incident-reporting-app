@@ -1,4 +1,4 @@
-// Fixed: src/models/Incident.js - Enhanced with proper police fields handling
+// Fixed: src/models/Incident.js - Enhanced with proper witness fields handling
 
 import clientPromise from '@/lib/mongodb'
 import { ObjectId } from 'mongodb'
@@ -13,77 +13,86 @@ export class Incident {
     const incidentCount = await incidents.countDocuments()
     const incidentId = `INC-${Date.now()}-${(incidentCount + 1).toString().padStart(4, '0')}`
     
-    // FIXED: Properly handle police fields with explicit type checking and defaults
+    // Properly handle police fields with explicit type checking and defaults
     const policeInvolved = Boolean(incidentData.policeInvolved)
     const policeReportFiled = Boolean(incidentData.policeReportFiled)
     
-    console.log('Incident.create - Police fields processing:', {
-      inputPoliceInvolved: incidentData.policeInvolved,
-      inputPoliceReportFiled: incidentData.policeReportFiled,
-      inputPoliceReportNumber: incidentData.policeReportNumber,
-      inputOfficerName: incidentData.officerName,
-      inputOfficerBadge: incidentData.officerBadge,
-      processedPoliceInvolved: policeInvolved,
-      processedPoliceReportFiled: policeReportFiled
+    // FIXED: Properly handle witness fields with validation and defaults
+    const witnessData = incidentData.witnessData || 'na'
+    let witnesses = []
+    
+    if (witnessData === 'witnesses' && incidentData.witnesses && Array.isArray(incidentData.witnesses)) {
+      witnesses = incidentData.witnesses.map(witness => ({
+        name: (witness.name || '').toString().trim(),
+        contact: (witness.contact || '').toString().trim(),
+        statement: (witness.statement || '').toString().trim()
+      })).filter(witness => 
+        witness.name || witness.contact || witness.statement // Keep witnesses with at least one field
+      )
+    }
+    
+    console.log('Incident.create - Witness fields processing:', {
+      inputWitnessData: incidentData.witnessData,
+      inputWitnesses: incidentData.witnesses,
+      inputWitnessCount: incidentData.witnesses?.length || 0,
+      processedWitnessData: witnessData,
+      processedWitnesses: witnesses,
+      processedWitnessCount: witnesses.length
     })
     
-const newIncident = {
-  incidentId,
-  guardId: incidentData.guardId,
-  guardName: incidentData.guardName,
-  guardEmail: incidentData.guardEmail,
-  clientId: incidentData.clientId,
-  incidentType: incidentData.incidentType,
-  priority: incidentData.priority || 'normal',
-  incidentDate: incidentData.incidentDate,
-  incidentTime: incidentData.incidentTime,
-  incidentDateTime: incidentData.incidentDateTime,
-  withinProperty: incidentData.withinProperty,
-  location: incidentData.location,
-  incidentOriginatedBy: incidentData.incidentOriginatedBy,
-  description: incidentData.description,
+    const newIncident = {
+      incidentId,
+      guardId: incidentData.guardId,
+      guardName: incidentData.guardName,
+      guardEmail: incidentData.guardEmail,
+      clientId: incidentData.clientId,
+      incidentType: incidentData.incidentType,
+      priority: incidentData.priority || 'normal',
+      incidentDate: incidentData.incidentDate,
+      incidentTime: incidentData.incidentTime,
+      incidentDateTime: incidentData.incidentDateTime,
+      withinProperty: incidentData.withinProperty,
+      location: incidentData.location,
+      incidentOriginatedBy: incidentData.incidentOriginatedBy,
+      description: incidentData.description,
 
-  // Police fields
-  policeInvolved: policeInvolved,
-  policeReportFiled: policeReportFiled,
-  policeReportNumber: (policeInvolved && policeReportFiled) ? (incidentData.policeReportNumber || '') : '',
-  officerName: policeInvolved ? (incidentData.officerName || '') : '',
-  officerBadge: policeInvolved ? (incidentData.officerBadge || '') : '',
-  
-  // NEW: Witness fields
-  witnessData: incidentData.witnessData || 'na',
-  witnesses: incidentData.witnesses || [],
-  
-  attachments: incidentData.attachments || [],
-  recipientId: incidentData.recipientId,
-  recipientName: incidentData.recipientName,
-  recipientEmail: incidentData.recipientEmail,
-  recipientRole: incidentData.recipientRole,
-  recipientInfo: incidentData.recipientInfo,
-  messageType: incidentData.messageType || 'incident',
-  status: 'submitted',
-  createdAt: new Date(),
-  updatedAt: new Date()
-}
+      // Police fields
+      policeInvolved: policeInvolved,
+      policeReportFiled: policeReportFiled,
+      policeReportNumber: (policeInvolved && policeReportFiled) ? (incidentData.policeReportNumber || '') : '',
+      officerName: policeInvolved ? (incidentData.officerName || '') : '',
+      officerBadge: policeInvolved ? (incidentData.officerBadge || '') : '',
+      
+      // FIXED: Witness fields - properly included with validation
+      witnessData: witnessData,
+      witnesses: witnesses,
+      
+      attachments: incidentData.attachments || [],
+      recipientId: incidentData.recipientId,
+      recipientName: incidentData.recipientName,
+      recipientEmail: incidentData.recipientEmail,
+      recipientRole: incidentData.recipientRole,
+      recipientInfo: incidentData.recipientInfo,
+      messageType: incidentData.messageType || 'incident',
+      status: 'submitted',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
     
-    console.log('Final incident object police fields before DB insert:', {
-      policeInvolved: newIncident.policeInvolved,
-      policeReportFiled: newIncident.policeReportFiled,
-      policeReportNumber: newIncident.policeReportNumber,
-      officerName: newIncident.officerName,
-      officerBadge: newIncident.officerBadge
+    console.log('Final incident object witness fields before DB insert:', {
+      witnessData: newIncident.witnessData,
+      witnesses: newIncident.witnesses,
+      witnessCount: newIncident.witnesses.length
     })
     
     const result = await incidents.insertOne(newIncident)
     
-    // VERIFICATION: Read back the inserted document to verify police fields were saved
+    // VERIFICATION: Read back the inserted document to verify witness fields were saved
     const insertedIncident = await incidents.findOne({ _id: result.insertedId })
-    console.log('Verification - Police fields after DB insert:', {
-      policeInvolved: insertedIncident.policeInvolved,
-      policeReportFiled: insertedIncident.policeReportFiled,
-      policeReportNumber: insertedIncident.policeReportNumber,
-      officerName: insertedIncident.officerName,
-      officerBadge: insertedIncident.officerBadge
+    console.log('Verification - Witness fields after DB insert:', {
+      witnessData: insertedIncident.witnessData,
+      witnesses: insertedIncident.witnesses,
+      witnessCount: insertedIncident.witnesses?.length || 0
     })
     
     return { _id: result.insertedId, ...newIncident }
@@ -96,14 +105,12 @@ const newIncident = {
     
     const incident = await incidents.findOne({ _id: new ObjectId(id) })
     
-    // DEBUG: Log police fields when retrieving incident
+    // DEBUG: Log witness fields when retrieving incident
     if (incident) {
-      console.log('Retrieved incident police fields:', {
-        policeInvolved: incident.policeInvolved,
-        policeReportFiled: incident.policeReportFiled,
-        policeReportNumber: incident.policeReportNumber,
-        officerName: incident.officerName,
-        officerBadge: incident.officerBadge
+      console.log('Retrieved incident witness fields:', {
+        witnessData: incident.witnessData,
+        witnesses: incident.witnesses,
+        witnessCount: incident.witnesses?.length || 0
       })
     }
     
@@ -166,7 +173,7 @@ const newIncident = {
     const db = client.db('incident-reporting-db')
     const incidents = db.collection('incidents')
     
-    // FIXED: Properly handle police fields in updates too
+    // Properly handle police fields in updates too
     if (updateData.policeInvolved !== undefined) {
       updateData.policeInvolved = Boolean(updateData.policeInvolved)
     }
@@ -188,13 +195,32 @@ const newIncident = {
       updateData.policeReportNumber = ''
     }
     
-    console.log('Incident.updateIncident - Police fields in update:', {
-      policeInvolved: updateData.policeInvolved,
-      policeReportFiled: updateData.policeReportFiled,
-      policeReportNumber: updateData.policeReportNumber,
-      officerName: updateData.officerName,
-      officerBadge: updateData.officerBadge
-    })
+    // FIXED: Properly handle witness fields in updates with validation
+    if (updateData.witnessData !== undefined) {
+      const witnessData = updateData.witnessData || 'na'
+      let witnesses = []
+      
+      if (witnessData === 'witnesses' && updateData.witnesses && Array.isArray(updateData.witnesses)) {
+        witnesses = updateData.witnesses.map(witness => ({
+          name: (witness.name || '').toString().trim(),
+          contact: (witness.contact || '').toString().trim(),
+          statement: (witness.statement || '').toString().trim()
+        })).filter(witness => 
+          witness.name || witness.contact || witness.statement // Keep witnesses with at least one field
+        )
+      } else if (witnessData !== 'witnesses') {
+        witnesses = [] // Clear witnesses if not using witnesses
+      }
+      
+      updateData.witnessData = witnessData
+      updateData.witnesses = witnesses
+      
+      console.log('Incident.updateIncident - Witness fields in update:', {
+        witnessData: updateData.witnessData,
+        witnesses: updateData.witnesses,
+        witnessCount: updateData.witnesses.length
+      })
+    }
     
     const result = await incidents.updateOne(
       { _id: new ObjectId(id) },
@@ -209,47 +235,46 @@ const newIncident = {
     // VERIFICATION: Read back the updated document
     if (result.modifiedCount > 0) {
       const updatedIncident = await incidents.findOne({ _id: new ObjectId(id) })
-      console.log('Verification - Police fields after update:', {
-        policeInvolved: updatedIncident.policeInvolved,
-        policeReportFiled: updatedIncident.policeReportFiled,
-        policeReportNumber: updatedIncident.policeReportNumber,
-        officerName: updatedIncident.officerName,
-        officerBadge: updatedIncident.officerBadge
+      console.log('Verification - Witness fields after update:', {
+        witnessData: updatedIncident.witnessData,
+        witnesses: updatedIncident.witnesses,
+        witnessCount: updatedIncident.witnesses?.length || 0
       })
     }
     
     return result
   }
   
-static async getAllIncidents(page = 1, limit = 1000) { // Increased default limit
-  const client = await clientPromise
-  const db = client.db('incident-reporting-db')
-  const incidents = db.collection('incidents')
-  
-  const skip = (page - 1) * limit
-  
-  // For very large datasets, you might want to remove pagination entirely for management
-  const incidents_list = await incidents
-    .find({})
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit)
-    .toArray()
+  static async getAllIncidents(page = 1, limit = 1000) { // Increased default limit
+    const client = await clientPromise
+    const db = client.db('incident-reporting-db')
+    const incidents = db.collection('incidents')
     
-  const total = await incidents.countDocuments()
-  
-  return {
-    incidents: incidents_list,
-    total,
-    page,
-    totalPages: Math.ceil(total / limit)
+    const skip = (page - 1) * limit
+    
+    // For very large datasets, you might want to remove pagination entirely for management
+    const incidents_list = await incidents
+      .find({})
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .toArray()
+      
+    const total = await incidents.countDocuments()
+    
+    return {
+      incidents: incidents_list,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit)
+    }
   }
-}
-static async deleteIncident(id) {
-  const client = await clientPromise
-  const db = client.db('incident-reporting-db')
-  const incidents = db.collection('incidents')
-  
-  return await incidents.deleteOne({ _id: new ObjectId(id) })
-}
+
+  static async deleteIncident(id) {
+    const client = await clientPromise
+    const db = client.db('incident-reporting-db')
+    const incidents = db.collection('incidents')
+    
+    return await incidents.deleteOne({ _id: new ObjectId(id) })
+  }
 }

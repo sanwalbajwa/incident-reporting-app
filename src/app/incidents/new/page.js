@@ -165,23 +165,21 @@ export default function NewIncidentPage() {
     }
   }
 
-// Fixed police fields handling in handleSubmit function
-// This should replace the handleSubmit function in src/app/incidents/new/page.js
+// Fixed handleSubmit function for src/app/incidents/new/page.js
+// This should replace your existing handleSubmit function
 
 const handleSubmit = async (e) => {
   e.preventDefault()
   setLoading(true)
 
   try {
-    console.log('=== INCIDENT CREATION WITH POLICE FIELDS DEBUG ===')
+    console.log('=== FORM SUBMISSION WITH WITNESS FIELDS DEBUG ===')
     console.log('Form data before submission:', {
       ...formData,
-      policeFields: {
-        policeInvolved: formData.policeInvolved,
-        policeReportFiled: formData.policeReportFiled,
-        policeReportNumber: formData.policeReportNumber,
-        officerName: formData.officerName,
-        officerBadge: formData.officerBadge
+      witnessFields: {
+        witnessData: formData.witnessData,
+        witnesses: formData.witnesses,
+        witnessCount: formData.witnesses?.length || 0
       }
     })
     
@@ -207,42 +205,39 @@ const handleSubmit = async (e) => {
       }
     }
     
-    // FIXED: Properly include police fields in the incident data
-// FIXED: Properly include police fields in the incident data
-const incidentData = {
-  ...recipientData,
-  clientId: formData.clientId,
-  incidentType: formData.incidentType === 'Other' ? formData.customIncidentType : formData.incidentType,
-  priority: formData.priority,
-  incidentDate: formData.incidentDate,
-  incidentTime: formData.incidentTime,
-  incidentDateTime: new Date(`${formData.incidentDate}T${formData.incidentTime}`),
-  withinProperty: formData.locationWithinProperty,
-  location: formData.locationDescription,
-  description: formData.description,
-  incidentOriginatedBy: formData.incidentOriginatedBy,
-  messageType: isCommunication ? 'communication' : 'incident',
-  
-  // Police fields
-  policeInvolved: Boolean(formData.policeInvolved),
-  policeReportFiled: Boolean(formData.policeReportFiled),
-  policeReportNumber: formData.policeReportNumber || '',
-  officerName: formData.officerName || '',
-  officerBadge: formData.officerBadge || '',
-  
-  // NEW: Witness fields
-  witnessData: formData.witnessData,
-  witnesses: formData.witnesses
-}
+    // FIXED: Ensure witness data is properly included in the incident data
+    const incidentData = {
+      ...recipientData,
+      clientId: formData.clientId,
+      incidentType: formData.incidentType === 'Other' ? formData.customIncidentType : formData.incidentType,
+      priority: formData.priority,
+      incidentDate: formData.incidentDate,
+      incidentTime: formData.incidentTime,
+      incidentDateTime: new Date(`${formData.incidentDate}T${formData.incidentTime}`),
+      withinProperty: formData.locationWithinProperty,
+      location: formData.locationDescription,
+      description: formData.description,
+      incidentOriginatedBy: formData.incidentOriginatedBy,
+      messageType: isCommunication ? 'communication' : 'incident',
+      
+      // Police fields
+      policeInvolved: Boolean(formData.policeInvolved),
+      policeReportFiled: Boolean(formData.policeReportFiled),
+      policeReportNumber: formData.policeReportNumber || '',
+      officerName: formData.officerName || '',
+      officerBadge: formData.officerBadge || '',
+      
+      // FIXED: Witness fields - ensure they are included
+      witnessData: formData.witnessData || 'na',
+      witnesses: formData.witnesses || []
+    }
 
-    console.log('Incident data to submit with police fields:', {
+    console.log('Incident data to submit with witness fields:', {
       ...incidentData,
-      policeFields: {
-        policeInvolved: incidentData.policeInvolved,
-        policeReportFiled: incidentData.policeReportFiled,
-        policeReportNumber: incidentData.policeReportNumber,
-        officerName: incidentData.officerName,
-        officerBadge: incidentData.officerBadge
+      witnessFields: {
+        witnessData: incidentData.witnessData,
+        witnesses: incidentData.witnesses,
+        witnessCount: incidentData.witnesses.length
       }
     })
 

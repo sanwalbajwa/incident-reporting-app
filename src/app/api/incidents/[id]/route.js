@@ -1,4 +1,4 @@
-// Update: src/app/api/incidents/[id]/route.js - Add activity logging for incident updates
+// Fixed: src/app/api/incidents/[id]/route.js - Enhanced with witness fields handling
 
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -61,7 +61,7 @@ export async function GET(request, { params }) {
   }
 }
 
-// PUT update incident (add update logging)
+// PUT update incident (add update logging with witness fields)
 export async function PUT(request, { params }) {
   try {
     const resolvedParams = await params
@@ -72,6 +72,13 @@ export async function PUT(request, { params }) {
     }
     
     const incidentData = await request.json()
+    
+    console.log('=== INCIDENT UPDATE WITH WITNESS FIELDS DEBUG ===')
+    console.log('Received witness data for update:', {
+      witnessData: incidentData.witnessData,
+      witnesses: incidentData.witnesses,
+      witnessCount: incidentData.witnesses?.length || 0
+    })
     
     // Get existing incident
     const existingIncident = await Incident.findById(resolvedParams.id)
@@ -107,7 +114,30 @@ export async function PUT(request, { params }) {
     const policeInvolved = Boolean(incidentData.policeInvolved)
     const policeReportFiled = Boolean(incidentData.policeReportFiled)
     
-    // Prepare update data with proper police field handling
+    // FIXED: Properly handle witness fields with validation for updates
+    let witnessData = incidentData.witnessData || 'na'
+    let witnesses = []
+    
+    // Validate witness data
+    if (witnessData === 'witnesses' && incidentData.witnesses && Array.isArray(incidentData.witnesses)) {
+      witnesses = incidentData.witnesses.map(witness => ({
+        name: (witness.name || '').trim(),
+        contact: (witness.contact || '').trim(),
+        statement: (witness.statement || '').trim()
+      })).filter(witness => witness.name || witness.contact || witness.statement) // Remove empty witnesses
+    } else if (witnessData === 'witnesses') {
+      // If witnessData is 'witnesses' but no witnesses array, reset to 'none'
+      witnessData = 'none'
+      witnesses = []
+    }
+    
+    console.log('Processed witness data for update:', {
+      witnessData,
+      witnessCount: witnesses.length,
+      witnessesProcessed: witnesses
+    })
+    
+    // Prepare update data with proper witness field handling
     const updateData = {
       clientId: typeof incidentData.clientId === 'string' && incidentData.clientId.match(/^[0-9a-fA-F]{24}$/) 
         ? new ObjectId(incidentData.clientId) 
@@ -123,15 +153,25 @@ export async function PUT(request, { params }) {
       description: incidentData.description,
       messageType: incidentData.messageType,
       
-      // Properly handle police fields with explicit boolean conversion and conditional logic
+      // Police fields
       policeInvolved: policeInvolved,
       policeReportFiled: policeInvolved ? policeReportFiled : false,
       policeReportNumber: (policeInvolved && policeReportFiled) ? (incidentData.policeReportNumber || '') : '',
       officerName: policeInvolved ? (incidentData.officerName || '') : '',
       officerBadge: policeInvolved ? (incidentData.officerBadge || '') : '',
       
+      // FIXED: Witness fields - properly included in update data
+      witnessData: witnessData,
+      witnesses: witnesses,
+      
       updatedAt: new Date()
     }
+    
+    console.log('Update data with witness fields:', {
+      witnessData: updateData.witnessData,
+      witnessCount: updateData.witnesses.length,
+      witnesses: updateData.witnesses
+    })
     
     const result = await Incident.updateIncident(resolvedParams.id, updateData)
     
@@ -141,6 +181,13 @@ export async function PUT(request, { params }) {
     
     // Get updated incident
     const updatedIncident = await Incident.findById(resolvedParams.id)
+    
+    // Verify witness data was saved
+    console.log('Incident updated, verifying witness data:', {
+      witnessData: updatedIncident.witnessData,
+      witnessCount: updatedIncident.witnesses?.length || 0,
+      witnesses: updatedIncident.witnesses
+    })
     
     // Log incident update activity
     await logActivity({
@@ -155,6 +202,8 @@ export async function PUT(request, { params }) {
         incidentType: updateData.incidentType,
         priority: updateData.priority,
         policeInvolved: updateData.policeInvolved,
+        witnessData: updateData.witnessData,
+        witnessCount: updateData.witnesses.length,
         changes: Object.keys(updateData).filter(key => 
           JSON.stringify(existingIncident[key]) !== JSON.stringify(updateData[key])
         ),
@@ -194,6 +243,7 @@ export async function PUT(request, { params }) {
     )
   }
 }
+
 // DELETE incident (management only, no logging)
 export async function DELETE(request, { params }) {
   try {

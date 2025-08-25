@@ -1,4 +1,4 @@
-// Update: src/app/api/incidents/create/route.js - Enhanced with activity logging
+// Fixed: src/app/api/incidents/create/route.js - Enhanced with witness fields handling
 
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -17,17 +17,11 @@ export async function POST(request) {
     
     const incidentData = await request.json()
     
-    console.log('=== MULTI-RECIPIENT INCIDENT CREATION WITH POLICE FIELDS ===')
-    console.log('Received data:', {
-      recipientType: incidentData.recipientType,
-      recipientIds: incidentData.recipientIds,
-      recipientGroups: incidentData.recipientGroups,
-      incidentType: incidentData.incidentType,
-      policeInvolved: incidentData.policeInvolved,
-      policeReportFiled: incidentData.policeReportFiled,
-      policeReportNumber: incidentData.policeReportNumber,
-      officerName: incidentData.officerName,
-      officerBadge: incidentData.officerBadge
+    console.log('=== INCIDENT CREATION WITH WITNESS FIELDS DEBUG ===')
+    console.log('Received witness data:', {
+      witnessData: incidentData.witnessData,
+      witnesses: incidentData.witnesses,
+      witnessCount: incidentData.witnesses?.length || 0
     })
     
     // Validate required fields
@@ -126,14 +120,27 @@ export async function POST(request) {
     const policeInvolved = Boolean(incidentData.policeInvolved)
     const policeReportFiled = Boolean(incidentData.policeReportFiled)
     
-    console.log('Police fields processing:', {
-      originalPoliceInvolved: incidentData.policeInvolved,
-      convertedPoliceInvolved: policeInvolved,
-      originalPoliceReportFiled: incidentData.policeReportFiled,
-      convertedPoliceReportFiled: policeReportFiled,
-      policeReportNumber: incidentData.policeReportNumber,
-      officerName: incidentData.officerName,
-      officerBadge: incidentData.officerBadge
+    // FIXED: Properly handle witness fields with validation
+    let witnessData = incidentData.witnessData || 'na'
+    let witnesses = []
+    
+    // Validate witness data
+    if (witnessData === 'witnesses' && incidentData.witnesses && Array.isArray(incidentData.witnesses)) {
+      witnesses = incidentData.witnesses.map(witness => ({
+        name: (witness.name || '').trim(),
+        contact: (witness.contact || '').trim(),
+        statement: (witness.statement || '').trim()
+      })).filter(witness => witness.name || witness.contact || witness.statement) // Remove empty witnesses
+    } else if (witnessData === 'witnesses') {
+      // If witnessData is 'witnesses' but no witnesses array, reset to 'none'
+      witnessData = 'none'
+      witnesses = []
+    }
+    
+    console.log('Processed witness data:', {
+      witnessData,
+      witnessCount: witnesses.length,
+      witnessesProcessed: witnesses
     })
     
     // Create individual incident records for each recipient
@@ -153,12 +160,16 @@ export async function POST(request) {
       incidentOriginatedBy: incidentData.incidentOriginatedBy,
       description: incidentData.description,
       
-      // Properly include police fields in base incident data with proper types
+      // Police fields
       policeInvolved: policeInvolved,
       policeReportFiled: policeReportFiled,
       policeReportNumber: (policeInvolved && policeReportFiled) ? (incidentData.policeReportNumber || '') : '',
       officerName: policeInvolved ? (incidentData.officerName || '') : '',
       officerBadge: policeInvolved ? (incidentData.officerBadge || '') : '',
+      
+      // FIXED: Witness fields - properly included in base incident data
+      witnessData: witnessData,
+      witnesses: witnesses,
       
       messageType: incidentData.messageType || (isCommunication ? 'communication' : 'incident'),
       attachments: [], // Initialize empty - files will be uploaded separately
@@ -170,12 +181,10 @@ export async function POST(request) {
       }
     }
     
-    console.log('Base incident data with police fields:', {
-      policeInvolved: baseIncidentData.policeInvolved,
-      policeReportFiled: baseIncidentData.policeReportFiled,
-      policeReportNumber: baseIncidentData.policeReportNumber,
-      officerName: baseIncidentData.officerName,
-      officerBadge: baseIncidentData.officerBadge
+    console.log('Base incident data with witness fields:', {
+      witnessData: baseIncidentData.witnessData,
+      witnessCount: baseIncidentData.witnesses.length,
+      witnesses: baseIncidentData.witnesses
     })
     
     // Create incidents for each recipient
@@ -188,13 +197,10 @@ export async function POST(request) {
         recipientRole: recipient.role
       }
       
-      console.log('Creating incident for recipient with police data:', {
+      console.log('Creating incident for recipient with witness data:', {
         recipient: recipient.fullName,
-        policeInvolved: completeIncidentData.policeInvolved,
-        policeReportFiled: completeIncidentData.policeReportFiled,
-        policeReportNumber: completeIncidentData.policeReportNumber,
-        officerName: completeIncidentData.officerName,
-        officerBadge: completeIncidentData.officerBadge
+        witnessData: completeIncidentData.witnessData,
+        witnessCount: completeIncidentData.witnesses.length
       })
       
       try {
@@ -234,6 +240,8 @@ export async function POST(request) {
         recipientCount: allRecipients.length,
         recipientType: incidentData.recipientType,
         policeInvolved: policeInvolved,
+        witnessData: witnessData,
+        witnessCount: witnesses.length,
         location: incidentData.location,
         timestamp: new Date().toISOString()
       },

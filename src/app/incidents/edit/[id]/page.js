@@ -255,7 +255,7 @@ const loadIncident = async () => {
   setPageLoading(false)
 }
   
-  const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
   e.preventDefault()
   setLoading(true)
 
@@ -263,6 +263,16 @@ const loadIncident = async () => {
     // Await params for Next.js 15
     const resolvedParams = await params
     const isCommunication = formData.incidentType === 'Communication/Message'
+    
+    console.log('=== EDIT FORM SUBMISSION WITH WITNESS FIELDS DEBUG ===')
+    console.log('Form data before submission:', {
+      ...formData,
+      witnessFields: {
+        witnessData: formData.witnessData,
+        witnesses: formData.witnesses,
+        witnessCount: formData.witnesses?.length || 0
+      }
+    })
     
     // Prepare recipient data based on selection type
     let recipientData = {}
@@ -283,7 +293,7 @@ const loadIncident = async () => {
       }
     }
     
-    // FIXED: Properly include police fields in the update data
+    // FIXED: Properly include witness fields in the update data
     const incidentData = {
       ...recipientData,
       clientId: formData.clientId,
@@ -298,22 +308,24 @@ const loadIncident = async () => {
       incidentOriginatedBy: formData.incidentOriginatedBy,
       messageType: isCommunication ? 'communication' : 'incident',
       
-      // FIXED: Properly include police fields with explicit boolean conversion
+      // Police fields
       policeInvolved: Boolean(formData.policeInvolved),
       policeReportFiled: Boolean(formData.policeReportFiled),
       policeReportNumber: formData.policeReportNumber || '',
       officerName: formData.officerName || '',
-      officerBadge: formData.officerBadge || ''
+      officerBadge: formData.officerBadge || '',
+      
+      // FIXED: Witness fields - ensure they are included in the update
+      witnessData: formData.witnessData || 'na',
+      witnesses: formData.witnesses || []
     }
 
-    console.log('Updating incident data with police fields:', {
+    console.log('Updating incident data with witness fields:', {
       ...incidentData,
-      policeFields: {
-        policeInvolved: incidentData.policeInvolved,
-        policeReportFiled: incidentData.policeReportFiled,
-        policeReportNumber: incidentData.policeReportNumber,
-        officerName: incidentData.officerName,
-        officerBadge: incidentData.officerBadge
+      witnessFields: {
+        witnessData: incidentData.witnessData,
+        witnesses: incidentData.witnesses,
+        witnessCount: incidentData.witnesses.length
       }
     })
 
